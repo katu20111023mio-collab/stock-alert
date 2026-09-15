@@ -27,16 +27,15 @@
     .submit-btn { width: 100%; padding: 12px; background: #007aff; color: white; border: none; border-radius: 6px; font-size: 1rem; font-weight: bold; margin-top: 14px; cursor: pointer; }
     .notify-btn { width: 100%; padding: 10px; background: #34c759; color: white; border: none; border-radius: 6px; font-size: 0.9rem; font-weight: bold; margin-bottom: 12px; cursor: pointer; }
     
-    .item { padding: 12px; border-radius: 8px; border-bottom: 1px solid #eee; transition: background 0.2s; position: relative; }
+    .item { padding: 12px; border-radius: 8px; border-bottom: 1px solid #eee; transition: background 0.2s; position: relative; margin-bottom: 8px; }
     .item:active { background: #f8fafc; }
-    .item:last-child { border-bottom: none; }
     .item-header { display: flex; justify-content: space-between; align-items: center; }
     .item-title { font-size: 1.1rem; font-weight: bold; color: #111; }
-    .condition-tag { font-size: 0.75rem; color: #555; background: #f0f0f0; padding: 3px 6px; border-radius: 4px; display: inline-block; margin-right: 4px; margin-top: 6px; }
+    .condition-tag { font-size: 0.75rem; color: #555; background: #eef4ff; padding: 3px 6px; border-radius: 4px; display: inline-block; margin-right: 4px; margin-top: 6px; }
     
     .yf-link-btn { display: inline-flex; align-items: center; gap: 4px; background: #ff0033; color: white; text-decoration: none; font-size: 0.75rem; font-weight: bold; padding: 4px 8px; border-radius: 12px; }
     .btn-group { display: flex; gap: 6px; margin-top: 8px; }
-    .mini-btn { padding: 4px 10px; font-size: 0.75rem; border: none; border-radius: 4px; cursor: pointer; }
+    .mini-btn { padding: 6px 12px; font-size: 0.75rem; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
     .edit-btn { background: #e0e0e0; color: #333; }
     .delete-btn { background: #ff3b30; color: white; }
   </style>
@@ -96,10 +95,10 @@
 
   <script>
     const mockDatabase = [
-      { id: "9432", name: "NTT", code: "9432.T", price: 152.8, changeNum: -1.2, changePercent: -0.78 },
-      { id: "9984", name: "ソフトバンクグループ", code: "9984.T", price: 8900, changeNum: 120, changePercent: 1.37 },
-      { id: "9434", name: "ソフトバンク", code: "9434.T", price: 250.8, changeNum: 3.9, changePercent: 1.58 },
-      { id: "7203", name: "トヨタ自動車", code: "7203.T", price: 2650, changeNum: -45, changePercent: -1.67 }
+      { id: "9432", name: "NTT", code: "9432", price: 152.8, changeNum: -1.2, changePercent: -0.78 },
+      { id: "9984", name: "ソフトバンクグループ", code: "9984", price: 8900, changeNum: 120, changePercent: 1.37 },
+      { id: "9434", name: "ソフトバンク", code: "9434", price: 250.8, changeNum: 3.9, changePercent: 1.58 },
+      { id: "7203", name: "トヨタ自動車", code: "7203", price: 2650, changeNum: -45, changePercent: -1.67 }
     ];
 
     let alerts = JSON.parse(localStorage.getItem('stock_alerts') || '[]');
@@ -139,6 +138,8 @@
             alert('通知が拒否されました。');
           }
         });
+      } else {
+        alert('このブラウザは直接の通知機能に対応していません。');
       }
     }
 
@@ -186,8 +187,8 @@
           message += `値下がり率 (-${item.rate}%) を超えました！\n`;
         }
 
-        if (isTriggered && Notification.permission === 'granted') {
-          new Notification(`🚨 株価アラート: ${item.stock ? item.stock.name : item.name}`, { body: message });
+        if (isTriggered && ('Notification' in window) && Notification.permission === 'granted') {
+          new Notification(`🚨 株価アラート: ${item.name}`, { body: message });
         }
       });
     }
@@ -199,14 +200,17 @@
 
       if (!input) { previewDiv.style.display = 'none'; return; }
 
-      const rawCode = input.split(':')[0].trim();
-      const match = mockDatabase.find(item => item.name.includes(rawCode) || item.id.includes(rawCode));
+      const searchKey = input.split(':')[0].trim().toUpperCase();
+      const match = mockDatabase.find(item => 
+        item.name.toUpperCase().includes(searchKey) || 
+        item.id.includes(searchKey)
+      );
 
       if (match) {
         contentDiv.innerHTML = createYfHTML(match);
         previewDiv.style.display = 'block';
       } else {
-        contentDiv.innerHTML = `<div style="color:#666; font-size:0.9rem;">「${input}」を検索中...</div>`;
+        contentDiv.innerHTML = `<div style="color:#666; font-size:0.9rem;">「${input}」の参考データを取得中...</div>`;
         previewDiv.style.display = 'block';
       }
     }
@@ -233,19 +237,32 @@
       const price = document.getElementById('targetPrice').value;
       const rate = document.getElementById('targetDropRate').value;
 
-      if (!input || (!price && !rate)) {
-        alert('銘柄名と、少なくとも1つの条件を入力してください。');
+      if (!input) {
+        alert('銘柄名またはコードを入力してください。');
         return;
       }
 
-      const rawCode = input.split(':')[0].trim();
-      let match = mockDatabase.find(item => item.id === rawCode || item.name.includes(rawCode));
-      
-      if (!match) {
-        match = { id: rawCode, name: input, code: rawCode + ".T", price: 1000, changeNum: 0, changePercent: 0 };
+      if (!price && !rate) {
+        alert('①指定安値 または ②値下がり率 のどちらかを入力してください。');
+        return;
       }
 
-      const alertData = { name: match.name, code: match.id, stock: match, price: price || null, rate: rate || null };
+      const searchKey = input.split(':')[0].trim().toUpperCase();
+      let match = mockDatabase.find(item => 
+        item.id === searchKey || 
+        item.name.toUpperCase().includes(searchKey)
+      );
+
+      const stockCode = match ? match.id : searchKey;
+      const stockName = match ? match.name : input;
+
+      const alertData = { 
+        name: stockName, 
+        code: stockCode, 
+        stock: match || { price: 0, changePercent: 0 }, 
+        price: price || null, 
+        rate: rate || null 
+      };
 
       if (editingIndex !== null) {
         alerts[editingIndex] = alertData;
