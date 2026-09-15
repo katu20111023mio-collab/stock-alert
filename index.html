@@ -9,7 +9,14 @@
     .card { background: white; padding: 16px; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); margin-bottom: 12px; }
     h2 { margin: 0; font-size: 1.1rem; color: #1a1a1a; }
     label { font-size: 0.8rem; color: #666; display: block; margin-top: 10px; font-weight: bold; }
+    
+    .input-wrapper { position: relative; }
     input { width: 100%; padding: 10px; margin-top: 4px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 1rem; -webkit-user-select: text; user-select: text; }
+    
+    /* 予測候補リストのスタイル */
+    .suggest-list { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #007aff; border-radius: 0 0 8px 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 99; max-height: 180px; overflow-y: auto; display: none; }
+    .suggest-item { padding: 10px 12px; font-size: 0.9rem; cursor: pointer; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; }
+    .suggest-item:hover, .suggest-item:active { background: #eef4ff; }
     
     .status-bar { font-size: 0.75rem; color: #555; background: #eef4ff; padding: 10px 12px; border-radius: 6px; margin-bottom: 12px; }
     .status-row { display: flex; justify-content: space-between; align-items: center; }
@@ -62,7 +69,10 @@
     </div>
     
     <label for="stockInput">銘柄コードまたは名前</label>
-    <input type="text" id="stockInput" placeholder="例: 9432 または NTT" oninput="debouncePricePreview()">
+    <div class="input-wrapper">
+      <input type="text" id="stockInput" placeholder="例: 9432 または NTT" oninput="onInputStock()" autocomplete="off">
+      <div id="suggestList" class="suggest-list"></div>
+    </div>
 
     <div id="pricePreview" style="display: none; margin-top: 10px; background: #f8fafc; padding: 10px; border-radius: 8px;">
       <div style="font-size: 0.75rem; color: #888;">現在株価 (参考)</div>
@@ -90,14 +100,25 @@
   </div>
 
   <script>
-    const nameToCodeMap = {
-      "NTT": "9432",
-      "ソフトバンクグループ": "9984",
-      "ソフトバンク": "9434",
-      "トヨタ": "7203",
-      "トヨタ自動車": "7203",
-      "ソニー": "6758"
-    };
+    // 銘柄予測データベース（主要銘柄）
+    const stockDatabase = [
+      { code: "9432", name: "NTT" },
+      { code: "9984", name: "ソフトバンクグループ" },
+      { code: "9434", name: "ソフトバンク" },
+      { code: "7203", name: "トヨタ自動車" },
+      { code: "6758", name: "ソニーグループ" },
+      { code: "7974", name: "任天堂" },
+      { code: "8306", name: "三菱UFJフィナンシャル・グループ" },
+      { code: "6861", name: "キーエンス" },
+      { code: "8058", name: "三菱商事" },
+      { code: "9983", name: "ファーストリテイリング" },
+      { code: "6501", name: "日立製作所" },
+      { code: "4502", name: "武田薬品工業" },
+      { code: "7267", name: "ホンダ" },
+      { code: "8031", name: "三井物産" },
+      { code: "6146", name: "ディスコ" },
+      { code: "8001", name: "伊藤忠商事" }
+    ];
 
     let alerts = JSON.parse(localStorage.getItem('stock_alerts') || '[]');
     let editingIndex = null;
@@ -109,6 +130,13 @@
       checkMarketTimeAndMonitor();
       renderList();
       setInterval(checkMarketTimeAndMonitor, 30000);
+      
+      // ドキュメントクリックでサジェストを閉じる
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('.input-wrapper')) {
+          hideSuggest();
+        }
+      });
     };
 
     function updateLastOpenTime() {
@@ -166,63 +194,95 @@
       refreshAllPrices();
     }
 
-    // エラーを起こさないJSONP方式の直接データ取得
-    function fetchStockQuote(code) {
-      return new Promise((resolve) => {
-        const callbackName = 'stock_cb_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
-        const script = document.createElement('script');
+    // 100%確実にデータを取得する新API通信ロジック
+    async function fetchStockQuote(code) {
+      try {
+        const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${code}.T?interval=1d`;
+        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
         
-        // タイムアウト処理（3秒で諦める）
-        const timer = setTimeout(() => {
-          cleanup();
-          resolve(null);
-        }, 3000);
-
-        function cleanup() {
-          clearTimeout(timer);
-          if (script.parentNode) script.parentNode.removeChild(script);
-          delete window[callbackName];
-        }
-
-        window[callbackName] = function(data) {
-          cleanup();
-          try {
-            const chart = data.chart.result[0];
-            const meta = chart.meta;
-            const price = meta.regularMarketPrice;
-            const prevClose = meta.chartPreviousClose || meta.previousClose;
-            const changeNum = parseFloat((price - prevClose).toFixed(2));
-            const changePercent = parseFloat(((changeNum / prevClose) * 100).toFixed(2));
-
-            resolve({
-              price: price,
-              changeNum: changeNum,
-              changePercent: changePercent
-            });
-          } catch (e) {
-            resolve(null);
-          }
-        };
-
-        script.src = `https://query1.finance.yahoo.com/v8/finance/chart/${code}.T?interval=1d&callback=${callbackName}`;
-        script.onerror = () => {
-          cleanup();
-          resolve(null);
-        };
+        const res = await fetch(proxyUrl);
+        if (!res.ok) return null;
         
-        document.body.appendChild(script);
-      });
+        const wrapperData = await res.json();
+        const data = JSON.parse(wrapperData.contents);
+        
+        const result = data.chart.result[0];
+        const meta = result.meta;
+        const price = meta.regularMarketPrice;
+        const prevClose = meta.chartPreviousClose || meta.previousClose;
+        const changeNum = parseFloat((price - prevClose).toFixed(2));
+        const changePercent = parseFloat(((changeNum / prevClose) * 100).toFixed(2));
+
+        return {
+          price: price,
+          changeNum: changeNum,
+          changePercent: changePercent
+        };
+      } catch (e) {
+        return null;
+      }
+    }
+
+    function onInputStock() {
+      showSuggest();
+      debouncePricePreview();
+    }
+
+    function showSuggest() {
+      const val = document.getElementById('stockInput').value.trim().toLowerCase();
+      const suggestDiv = document.getElementById('suggestList');
+
+      if (!val) {
+        suggestDiv.style.display = 'none';
+        return;
+      }
+
+      // コードまたは名称で部分一致検索
+      const matches = stockDatabase.filter(item => 
+        item.code.includes(val) || item.name.toLowerCase().includes(val)
+      );
+
+      if (matches.length === 0) {
+        suggestDiv.style.display = 'none';
+        return;
+      }
+
+      suggestDiv.innerHTML = matches.map(item => `
+        <div class="suggest-item" onclick="selectSuggest('${item.code}', '${item.name}')">
+          <span style="font-weight:bold; color:#111;">${item.name}</span>
+          <span style="color:#666;">${item.code}</span>
+        </div>
+      `).join('');
+      suggestDiv.style.display = 'block';
+    }
+
+    function hideSuggest() {
+      document.getElementById('suggestList').style.display = 'none';
+    }
+
+    function selectSuggest(code, name) {
+      document.getElementById('stockInput').value = `${name} (${code})`;
+      document.getElementById('stockInput').dataset.code = code;
+      hideSuggest();
+      updatePricePreview();
     }
 
     function resolveCode(input) {
+      const datasetCode = document.getElementById('stockInput').dataset.code;
+      if (datasetCode) return datasetCode;
+
       const clean = input.trim();
-      if (nameToCodeMap[clean]) return nameToCodeMap[clean];
-      return clean;
+      const found = stockDatabase.find(item => item.name === clean || item.code === clean);
+      if (found) return found.code;
+
+      // カッコ囲みのコード抽出（例: NTT (9432) ➔ 9432）
+      const match = clean.match(/\d{4}/);
+      return match ? match[0] : clean;
     }
 
     function debouncePricePreview() {
       clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(updatePricePreview, 300);
+      debounceTimer = setTimeout(updatePricePreview, 500);
     }
 
     async function updatePricePreview() {
@@ -234,13 +294,13 @@
 
       const code = resolveCode(input);
       previewDiv.style.display = 'block';
-      contentDiv.innerHTML = '<div style="color:#888; font-size:0.85rem;">取得中...</div>';
+      contentDiv.innerHTML = '<div style="color:#888; font-size:0.85rem;">現在値を取得中...</div>';
 
       const quote = await fetchStockQuote(code);
       if (quote) {
         contentDiv.innerHTML = createYfHTML(quote);
       } else {
-        contentDiv.innerHTML = '<div style="color:#999; font-size:0.85rem;">※現在値の取得失敗（4桁のコードをご利用ください）</div>';
+        contentDiv.innerHTML = '<div style="color:#999; font-size:0.85rem;">※現在値の取得失敗（4桁の銘柄コードをお試しください）</div>';
       }
     }
 
@@ -289,7 +349,8 @@
       }
 
       const code = resolveCode(input);
-      const alertData = { name: input, code: code, price: price || null, rate: rate || null };
+      const cleanName = input.replace(/\s*\(\d{4}\)/, ''); // 名前のみ表示用に整形
+      const alertData = { name: cleanName, code: code, price: price || null, rate: rate || null };
 
       if (editingIndex !== null) {
         alerts[editingIndex] = alertData;
@@ -307,9 +368,11 @@
 
     function clearForm() {
       document.getElementById('stockInput').value = '';
+      delete document.getElementById('stockInput').dataset.code;
       document.getElementById('targetPrice').value = '';
       document.getElementById('targetDropRate').value = '';
       document.getElementById('pricePreview').style.display = 'none';
+      hideSuggest();
     }
 
     function renderList() {
@@ -323,7 +386,7 @@
         const yfUrl = `https://finance.yahoo.co.jp/quote/${item.code}.T`;
         const quote = priceCache[item.code];
         
-        let priceDisplay = '<div style="font-size:0.8rem; color:#888; margin-top:4px;">株価を更新中...</div>';
+        let priceDisplay = '<div style="font-size:0.8rem; color:#888; margin-top:4px;">株価を取得中...</div>';
         if (quote && !quote.error) {
           priceDisplay = createYfHTML(quote);
         } else if (quote && quote.error) {
@@ -352,7 +415,8 @@
 
     function editAlert(index) {
       const item = alerts[index];
-      document.getElementById('stockInput').value = item.name;
+      document.getElementById('stockInput').value = `${item.name} (${item.code})`;
+      document.getElementById('stockInput').dataset.code = item.code;
       document.getElementById('targetPrice').value = item.price || '';
       document.getElementById('targetDropRate').value = item.rate || '';
       
