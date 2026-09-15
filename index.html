@@ -13,10 +13,10 @@
     .input-wrapper { position: relative; }
     input { width: 100%; padding: 10px; margin-top: 4px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 1rem; -webkit-user-select: text; user-select: text; }
     
-    /* 予測候補リストのスタイル */
-    .suggest-list { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #007aff; border-radius: 0 0 8px 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 99; max-height: 180px; overflow-y: auto; display: none; }
-    .suggest-item { padding: 10px 12px; font-size: 0.9rem; cursor: pointer; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; }
-    .suggest-item:hover, .suggest-item:active { background: #eef4ff; }
+    /* 予測候補リストのスタイル改善 */
+    .suggest-list { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 2px solid #007aff; border-radius: 0 0 8px 8px; box-shadow: 0 6px 16px rgba(0,0,0,0.2); z-index: 999; max-height: 200px; overflow-y: auto; display: none; }
+    .suggest-item { padding: 12px; font-size: 0.95rem; cursor: pointer; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+    .suggest-item:active { background: #007aff; color: white; }
     
     .status-bar { font-size: 0.75rem; color: #555; background: #eef4ff; padding: 10px 12px; border-radius: 6px; margin-bottom: 12px; }
     .status-row { display: flex; justify-content: space-between; align-items: center; }
@@ -70,7 +70,7 @@
     
     <label for="stockInput">銘柄コードまたは名前</label>
     <div class="input-wrapper">
-      <input type="text" id="stockInput" placeholder="例: 9432 または NTT" oninput="onInputStock()" autocomplete="off">
+      <input type="text" id="stockInput" placeholder="例: 9432 または NTT" oninput="showSuggest()" onfocus="showSuggest()" autocomplete="off">
       <div id="suggestList" class="suggest-list"></div>
     </div>
 
@@ -100,7 +100,6 @@
   </div>
 
   <script>
-    // 銘柄予測データベース（主要銘柄）
     const stockDatabase = [
       { code: "9432", name: "NTT" },
       { code: "9984", name: "ソフトバンクグループ" },
@@ -123,7 +122,6 @@
     let alerts = JSON.parse(localStorage.getItem('stock_alerts') || '[]');
     let editingIndex = null;
     let priceCache = {};
-    let debounceTimer = null;
 
     window.onload = () => {
       updateLastOpenTime();
@@ -131,7 +129,7 @@
       renderList();
       setInterval(checkMarketTimeAndMonitor, 30000);
       
-      // ドキュメントクリックでサジェストを閉じる
+      // 外部タップでサジェスト閉じる
       document.addEventListener('click', (e) => {
         if (!e.target.closest('.input-wrapper')) {
           hideSuggest();
@@ -194,7 +192,6 @@
       refreshAllPrices();
     }
 
-    // 100%確実にデータを取得する新API通信ロジック
     async function fetchStockQuote(code) {
       try {
         const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${code}.T?interval=1d`;
@@ -223,11 +220,6 @@
       }
     }
 
-    function onInputStock() {
-      showSuggest();
-      debouncePricePreview();
-    }
-
     function showSuggest() {
       const val = document.getElementById('stockInput').value.trim().toLowerCase();
       const suggestDiv = document.getElementById('suggestList');
@@ -237,7 +229,6 @@
         return;
       }
 
-      // コードまたは名称で部分一致検索
       const matches = stockDatabase.filter(item => 
         item.code.includes(val) || item.name.toLowerCase().includes(val)
       );
@@ -248,9 +239,9 @@
       }
 
       suggestDiv.innerHTML = matches.map(item => `
-        <div class="suggest-item" onclick="selectSuggest('${item.code}', '${item.name}')">
+        <div class="suggest-item" onmousedown="selectSuggest('${item.code}', '${item.name}')">
           <span style="font-weight:bold; color:#111;">${item.name}</span>
-          <span style="color:#666;">${item.code}</span>
+          <span style="color:#007aff; font-weight:bold;">${item.code}</span>
         </div>
       `).join('');
       suggestDiv.style.display = 'block';
@@ -261,8 +252,9 @@
     }
 
     function selectSuggest(code, name) {
-      document.getElementById('stockInput').value = `${name} (${code})`;
-      document.getElementById('stockInput').dataset.code = code;
+      const inputEl = document.getElementById('stockInput');
+      inputEl.value = `${name} (${code})`;
+      inputEl.dataset.code = code;
       hideSuggest();
       updatePricePreview();
     }
@@ -275,14 +267,8 @@
       const found = stockDatabase.find(item => item.name === clean || item.code === clean);
       if (found) return found.code;
 
-      // カッコ囲みのコード抽出（例: NTT (9432) ➔ 9432）
       const match = clean.match(/\d{4}/);
       return match ? match[0] : clean;
-    }
-
-    function debouncePricePreview() {
-      clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(updatePricePreview, 500);
     }
 
     async function updatePricePreview() {
@@ -300,7 +286,7 @@
       if (quote) {
         contentDiv.innerHTML = createYfHTML(quote);
       } else {
-        contentDiv.innerHTML = '<div style="color:#999; font-size:0.85rem;">※現在値の取得失敗（4桁の銘柄コードをお試しください）</div>';
+        contentDiv.innerHTML = '<div style="color:#999; font-size:0.85rem;">※現在値の取得失敗（4桁のコードをお試しください）</div>';
       }
     }
 
@@ -349,7 +335,7 @@
       }
 
       const code = resolveCode(input);
-      const cleanName = input.replace(/\s*\(\d{4}\)/, ''); // 名前のみ表示用に整形
+      const cleanName = input.replace(/\s*\(\d{4}\)/, '');
       const alertData = { name: cleanName, code: code, price: price || null, rate: rate || null };
 
       if (editingIndex !== null) {
