@@ -47,6 +47,8 @@
     .icon-btn { padding: 6px 10px; font-size: 0.9rem; background: #e0e0e0; border: none; border-radius: 4px; cursor: pointer; }
     .edit-btn { background: #e0e0e0; color: #333; }
     .delete-btn { background: #ff3b30; color: white; }
+
+    .footer { text-align: center; padding: 16px 0 24px; color: #888; font-size: 0.75rem; }
   </style>
 </head>
 <body>
@@ -98,6 +100,10 @@
     </div>
     <div id="alertList"></div>
   </div>
+
+  <footer class="footer">
+    株価アラート PWA ver 1.1.0
+  </footer>
 
   <script>
     let alerts = JSON.parse(localStorage.getItem('stock_alerts') || '[]');
@@ -173,13 +179,11 @@
       refreshAllPrices();
     }
 
-    // 入力時の連続API通信を防ぐタイマー処理
     function debounceSearch() {
       clearTimeout(searchTimer);
       searchTimer = setTimeout(searchStock, 300);
     }
 
-    // 全日本株式対応のリアルタイム銘柄検索API
     async function searchStock() {
       const query = document.getElementById('stockInput').value.trim();
       const suggestDiv = document.getElementById('suggestList');
@@ -200,7 +204,6 @@
         const wrapperData = await res.json();
         const data = JSON.parse(wrapperData.contents);
 
-        // 日本市場（.T）の銘柄のみ抽出
         const matches = (data.quotes || []).filter(q => q.symbol && q.symbol.endsWith('.T'));
 
         if (matches.length === 0) {
