@@ -13,7 +13,6 @@
     .input-wrapper { position: relative; }
     input { width: 100%; padding: 10px; margin-top: 4px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 1rem; -webkit-user-select: text; user-select: text; }
     
-    /* 予測候補リストのスタイル改善 */
     .suggest-list { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 2px solid #007aff; border-radius: 0 0 8px 8px; box-shadow: 0 6px 16px rgba(0,0,0,0.2); z-index: 999; max-height: 200px; overflow-y: auto; display: none; }
     .suggest-item { padding: 12px; font-size: 0.95rem; cursor: pointer; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
     .suggest-item:active { background: #007aff; color: white; }
@@ -45,6 +44,7 @@
     .yf-link-btn { display: inline-flex; align-items: center; gap: 4px; background: #ff0033; color: white; text-decoration: none; font-size: 0.75rem; font-weight: bold; padding: 4px 8px; border-radius: 12px; }
     .btn-group { display: flex; gap: 6px; margin-top: 10px; }
     .mini-btn { padding: 6px 12px; font-size: 0.75rem; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+    .reload-btn { background: #34c759; color: white; }
     .edit-btn { background: #e0e0e0; color: #333; }
     .delete-btn { background: #ff3b30; color: white; }
   </style>
@@ -70,7 +70,7 @@
     
     <label for="stockInput">銘柄コードまたは名前</label>
     <div class="input-wrapper">
-      <input type="text" id="stockInput" placeholder="例: 9432 または NTT" oninput="showSuggest()" onfocus="showSuggest()" autocomplete="off">
+      <input type="text" id="stockInput" placeholder="例: オリエンタルランド または 4661" oninput="showSuggest()" onfocus="showSuggest()" autocomplete="off">
       <div id="suggestList" class="suggest-list"></div>
     </div>
 
@@ -82,10 +82,10 @@
     <div class="condition-box">
       <div style="font-weight: bold; font-size: 0.85rem; color: #333;">アラート通知条件</div>
       <label for="targetPrice">① 指定安値（円）以下で通知</label>
-      <input type="number" id="targetPrice" placeholder="例: 160">
+      <input type="number" id="targetPrice" placeholder="例: 3500">
 
       <label for="targetDropRate">② 値下がり率（前日比 -%）以上で通知</label>
-      <input type="number" id="targetDropRate" placeholder="例: 5">
+      <input type="number" id="targetDropRate" placeholder="例: 3">
     </div>
 
     <button id="submitBtn" class="submit-btn" onclick="addAlert()">アラートを追加する</button>
@@ -94,13 +94,15 @@
   <div class="card">
     <div class="list-header">
       <h2>監視中のリスト</h2>
-      <button id="refreshBtn" class="refresh-btn" onclick="manualRefresh()">🔄 最新株価に更新</button>
+      <button id="refreshBtn" class="refresh-btn" onclick="manualRefresh()">🔄 一括更新</button>
     </div>
     <div id="alertList"></div>
   </div>
 
   <script>
+    // 主要・人気銘柄データベース（ひらがな・カタカナ・コード対応）
     const stockDatabase = [
+      { code: "4661", name: "オリエンタルランド" },
       { code: "9432", name: "NTT" },
       { code: "9984", name: "ソフトバンクグループ" },
       { code: "9434", name: "ソフトバンク" },
@@ -116,7 +118,22 @@
       { code: "7267", name: "ホンダ" },
       { code: "8031", name: "三井物産" },
       { code: "6146", name: "ディスコ" },
-      { code: "8001", name: "伊藤忠商事" }
+      { code: "8001", name: "伊藤忠商事" },
+      { code: "6920", name: "レーザーテック" },
+      { code: "8035", name: "東京エレクトロン" },
+      { code: "6526", name: "ソシオネクスト" },
+      { code: "9104", name: "商船三井" },
+      { code: "9101", name: "日本郵船" },
+      { code: "7211", name: "三菱自動車" },
+      { code: "6723", name: "ルネサスエレクトロニクス" },
+      { code: "4755", name: "楽天グループ" },
+      { code: "8316", name: "三井住友フィナンシャルグループ" },
+      { code: "8411", name: "みずほフィナンシャルグループ" },
+      { code: "2914", name: "JT" },
+      { code: "4519", name: "中外製薬" },
+      { code: "6367", name: "ダイキン工業" },
+      { code: "7011", name: "三菱重工業" },
+      { code: "7012", name: "川崎重工業" }
     ];
 
     let alerts = JSON.parse(localStorage.getItem('stock_alerts') || '[]');
@@ -129,7 +146,6 @@
       renderList();
       setInterval(checkMarketTimeAndMonitor, 30000);
       
-      // 外部タップでサジェスト閉じる
       document.addEventListener('click', (e) => {
         if (!e.target.closest('.input-wrapper')) {
           hideSuggest();
@@ -229,6 +245,7 @@
         return;
       }
 
+      // 1文字目から前方一致・部分一致で即検索
       const matches = stockDatabase.filter(item => 
         item.code.includes(val) || item.name.toLowerCase().includes(val)
       );
@@ -313,7 +330,17 @@
       btn.innerText = '🔄 更新中...';
       await refreshAllPrices();
       btn.disabled = false;
-      btn.innerText = '🔄 最新株価に更新';
+      btn.innerText = '🔄 一括更新';
+    }
+
+    // 特定の1銘柄だけ個別に更新する関数
+    async function refreshSinglePrice(index, code) {
+      priceCache[code] = null; // 一旦クリア
+      renderList();
+      
+      const quote = await fetchStockQuote(code);
+      priceCache[code] = quote || { error: true };
+      renderList();
     }
 
     async function refreshAllPrices() {
@@ -391,6 +418,7 @@
               ${item.rate ? `<span class="condition-tag">下落: -${item.rate}%以上</span>` : ''}
             </div>
             <div class="btn-group">
+              <button class="mini-btn reload-btn" onclick="refreshSinglePrice(${index}, '${item.code}')">🔄 再取得</button>
               <button class="mini-btn edit-btn" onclick="editAlert(${index})">編集</button>
               <button class="mini-btn delete-btn" onclick="deleteAlert(${index})">削除</button>
             </div>
