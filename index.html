@@ -166,44 +166,52 @@
       refreshAllPrices();
     }
 
-    async function fetchStockQuote(code) {
-      const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${code}.T?interval=1d`;
-      
-      try {
-        const proxyUrl1 = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}&timestamp=${Date.now()}`;
-        const res = await fetch(proxyUrl1, { signal: AbortSignal.timeout(4000) });
-        const data = await res.json();
-        const json = JSON.parse(data.contents);
-        return parseYahooData(json);
-      } catch (e) {
-        try {
-          const proxyUrl2 = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
-          const res = await fetch(proxyUrl2, { signal: AbortSignal.timeout(4000) });
-          const json = await res.json();
-          return parseYahooData(json);
-        } catch (e2) {
-          return null;
+    // エラーを起こさないJSONP方式の直接データ取得
+    function fetchStockQuote(code) {
+      return new Promise((resolve) => {
+        const callbackName = 'stock_cb_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+        const script = document.createElement('script');
+        
+        // タイムアウト処理（3秒で諦める）
+        const timer = setTimeout(() => {
+          cleanup();
+          resolve(null);
+        }, 3000);
+
+        function cleanup() {
+          clearTimeout(timer);
+          if (script.parentNode) script.parentNode.removeChild(script);
+          delete window[callbackName];
         }
-      }
-    }
 
-    function parseYahooData(json) {
-      try {
-        const result = json.chart.result[0];
-        const meta = result.meta;
-        const price = meta.regularMarketPrice;
-        const prevClose = meta.chartPreviousClose || meta.previousClose;
-        const changeNum = price - prevClose;
-        const changePercent = (changeNum / prevClose) * 100;
+        window[callbackName] = function(data) {
+          cleanup();
+          try {
+            const chart = data.chart.result[0];
+            const meta = chart.meta;
+            const price = meta.regularMarketPrice;
+            const prevClose = meta.chartPreviousClose || meta.previousClose;
+            const changeNum = parseFloat((price - prevClose).toFixed(2));
+            const changePercent = parseFloat(((changeNum / prevClose) * 100).toFixed(2));
 
-        return {
-          price: price,
-          changeNum: parseFloat(changeNum.toFixed(2)),
-          changePercent: parseFloat(changePercent.toFixed(2))
+            resolve({
+              price: price,
+              changeNum: changeNum,
+              changePercent: changePercent
+            });
+          } catch (e) {
+            resolve(null);
+          }
         };
-      } catch (e) {
-        return null;
-      }
+
+        script.src = `https://query1.finance.yahoo.com/v8/finance/chart/${code}.T?interval=1d&callback=${callbackName}`;
+        script.onerror = () => {
+          cleanup();
+          resolve(null);
+        };
+        
+        document.body.appendChild(script);
+      });
     }
 
     function resolveCode(input) {
@@ -214,7 +222,7 @@
 
     function debouncePricePreview() {
       clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(updatePricePreview, 500);
+      debounceTimer = setTimeout(updatePricePreview, 300);
     }
 
     async function updatePricePreview() {
@@ -232,7 +240,7 @@
       if (quote) {
         contentDiv.innerHTML = createYfHTML(quote);
       } else {
-        contentDiv.innerHTML = '<div style="color:#999; font-size:0.85rem;">※取得に失敗しました（4桁の銘柄コードをお試しください）</div>';
+        contentDiv.innerHTML = '<div style="color:#999; font-size:0.85rem;">※現在値の取得失敗（4桁のコードをご利用ください）</div>';
       }
     }
 
