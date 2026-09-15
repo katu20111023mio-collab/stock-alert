@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>株価アラート</title>
+  <title>株価アラート PWA</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 12px; background: #f0f2f5; margin: 0; -webkit-user-select: none; user-select: none; }
     .card { background: white; padding: 16px; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); margin-bottom: 12px; }
@@ -35,6 +35,10 @@
     .condition-tag { font-size: 0.75rem; color: #555; background: #f0f0f0; padding: 3px 6px; border-radius: 4px; display: inline-block; margin-right: 4px; margin-top: 6px; }
     
     .yf-link-btn { display: inline-flex; align-items: center; gap: 4px; background: #ff0033; color: white; text-decoration: none; font-size: 0.75rem; font-weight: bold; padding: 4px 8px; border-radius: 12px; }
+    .btn-group { display: flex; gap: 6px; margin-top: 8px; }
+    .mini-btn { padding: 4px 10px; font-size: 0.75rem; border: none; border-radius: 4px; cursor: pointer; }
+    .edit-btn { background: #e0e0e0; color: #333; }
+    .delete-btn { background: #ff3b30; color: white; }
   </style>
 </head>
 <body>
@@ -85,7 +89,7 @@
   <div class="card">
     <div style="display: flex; justify-content: space-between; align-items: center;">
       <h2>監視中のリスト</h2>
-      <span style="font-size:0.75rem; color:#aaa;">💡 長押しで編集・削除</span>
+      <span style="font-size:0.75rem; color:#aaa;">💡 編集・削除可能</span>
     </div>
     <div id="alertList"></div>
   </div>
@@ -108,7 +112,6 @@
       setInterval(checkMarketTimeAndMonitor, 30000);
     };
 
-    // 前回起動日時の記録と表示
     function updateLastOpenTime() {
       const lastTime = localStorage.getItem('last_open_time');
       const element = document.getElementById('lastOpenTime');
@@ -117,7 +120,6 @@
         element.innerText = `前回の起動: ${lastTime}`;
       }
 
-      // 今回の起動日時を現在時刻として記録
       const now = new Date();
       const formatted = `${now.getFullYear()}/${(now.getMonth()+1).toString().padStart(2, '0')}/${now.getDate().toString().padStart(2, '0')} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
       localStorage.setItem('last_open_time', formatted);
@@ -169,8 +171,8 @@
 
     function checkAlertConditions() {
       alerts.forEach(item => {
-        const currentPrice = item.stock.price;
-        const currentDropRate = Math.abs(item.stock.changePercent);
+        const currentPrice = item.stock ? item.stock.price : 0;
+        const currentDropRate = item.stock ? Math.abs(item.stock.changePercent) : 0;
         let isTriggered = false;
         let message = '';
 
@@ -179,13 +181,13 @@
           message += `目標安値 (${item.price}円) を下回りました！\n`;
         }
 
-        if (item.rate && item.stock.changePercent <= 0 && currentDropRate >= parseFloat(item.rate)) {
+        if (item.rate && item.stock && item.stock.changePercent <= 0 && currentDropRate >= parseFloat(item.rate)) {
           isTriggered = true;
           message += `値下がり率 (-${item.rate}%) を超えました！\n`;
         }
 
         if (isTriggered && Notification.permission === 'granted') {
-          new Notification(`🚨 株価アラート: ${item.stock.name}`, { body: message });
+          new Notification(`🚨 株価アラート: ${item.stock ? item.stock.name : item.name}`, { body: message });
         }
       });
     }
@@ -197,7 +199,8 @@
 
       if (!input) { previewDiv.style.display = 'none'; return; }
 
-      const match = mockDatabase.find(item => item.name.includes(input) || item.code.includes(input));
+      const rawCode = input.split(':')[0].trim();
+      const match = mockDatabase.find(item => item.name.includes(rawCode) || item.id.includes(rawCode));
 
       if (match) {
         contentDiv.innerHTML = createYfHTML(match);
@@ -219,5 +222,99 @@
           <div class="${iconClass}">${arrow}</div>
           <div class="yf-price-val">${item.price.toLocaleString()}</div>
           <div style="margin-left: 6px;">
-            <div class="${changeClass}">${isUp ? '+' : ''}${item.changeNum}</div>
-            <div class="${changeCla
+            <div class="${changeClass}">${isUp ? '+' : ''}${item.changeNum} (${isUp ? '+' : ''}${item.changePercent}%)</div>
+          </div>
+        </div>
+      `;
+    }
+
+    function addAlert() {
+      const input = document.getElementById('stockInput').value.trim();
+      const price = document.getElementById('targetPrice').value;
+      const rate = document.getElementById('targetDropRate').value;
+
+      if (!input || (!price && !rate)) {
+        alert('銘柄名と、少なくとも1つの条件を入力してください。');
+        return;
+      }
+
+      const rawCode = input.split(':')[0].trim();
+      let match = mockDatabase.find(item => item.id === rawCode || item.name.includes(rawCode));
+      
+      if (!match) {
+        match = { id: rawCode, name: input, code: rawCode + ".T", price: 1000, changeNum: 0, changePercent: 0 };
+      }
+
+      const alertData = { name: match.name, code: match.id, stock: match, price: price || null, rate: rate || null };
+
+      if (editingIndex !== null) {
+        alerts[editingIndex] = alertData;
+        editingIndex = null;
+        document.getElementById('formTitle').innerText = '銘柄の登録';
+        document.getElementById('submitBtn').innerText = 'アラートを追加する';
+      } else {
+        alerts.push(alertData);
+      }
+
+      saveToStorage();
+      renderList();
+      clearForm();
+    }
+
+    function clearForm() {
+      document.getElementById('stockInput').value = '';
+      document.getElementById('targetPrice').value = '';
+      document.getElementById('targetDropRate').value = '';
+      document.getElementById('pricePreview').style.display = 'none';
+    }
+
+    function renderList() {
+      const listDiv = document.getElementById('alertList');
+      if (alerts.length === 0) {
+        listDiv.innerHTML = '<div style="color:#999; font-size:0.85rem; padding:12px 0;">登録されているアラートはありません。</div>';
+        return;
+      }
+
+      listDiv.innerHTML = alerts.map((item, index) => {
+        const yfUrl = `https://finance.yahoo.co.jp/quote/${item.code}.T`;
+        return `
+          <div class="item">
+            <div class="item-header">
+              <span class="item-title">${item.name} (${item.code})</span>
+              <a href="${yfUrl}" target="_blank" class="yf-link-btn">Yahoo! ↗</a>
+            </div>
+            <div>
+              ${item.price ? `<span class="condition-tag">安値: ${item.price}円以下</span>` : ''}
+              ${item.rate ? `<span class="condition-tag">下落: -${item.rate}%以上</span>` : ''}
+            </div>
+            <div class="btn-group">
+              <button class="mini-btn edit-btn" onclick="editAlert(${index})">編集</button>
+              <button class="mini-btn delete-btn" onclick="deleteAlert(${index})">削除</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function editAlert(index) {
+      const item = alerts[index];
+      document.getElementById('stockInput').value = `${item.code}: ${item.name}`;
+      document.getElementById('targetPrice').value = item.price || '';
+      document.getElementById('targetDropRate').value = item.rate || '';
+      
+      editingIndex = index;
+      document.getElementById('formTitle').innerText = 'アラートの編集';
+      document.getElementById('submitBtn').innerText = '変更を保存する';
+      updatePricePreview();
+    }
+
+    function deleteAlert(index) {
+      if (confirm('このアラートを削除しますか？')) {
+        alerts.splice(index, 1);
+        saveToStorage();
+        renderList();
+      }
+    }
+  </script>
+</body>
+</html>
