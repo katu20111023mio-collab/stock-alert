@@ -44,7 +44,7 @@
     .yf-link-btn { display: inline-flex; align-items: center; gap: 4px; background: #ff0033; color: white; text-decoration: none; font-size: 0.75rem; font-weight: bold; padding: 4px 8px; border-radius: 12px; }
     .btn-group { display: flex; gap: 6px; margin-top: 10px; }
     .mini-btn { padding: 6px 12px; font-size: 0.75rem; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
-    .reload-btn { background: #34c759; color: white; }
+    .icon-btn { padding: 6px 10px; font-size: 0.9rem; background: #e0e0e0; border: none; border-radius: 4px; cursor: pointer; }
     .edit-btn { background: #e0e0e0; color: #333; }
     .delete-btn { background: #ff3b30; color: white; }
   </style>
@@ -70,7 +70,7 @@
     
     <label for="stockInput">銘柄コードまたは名前</label>
     <div class="input-wrapper">
-      <input type="text" id="stockInput" placeholder="例: オリエンタルランド または 4661" oninput="showSuggest()" onfocus="showSuggest()" autocomplete="off">
+      <input type="text" id="stockInput" placeholder="例: カドカワ, KADOKAWA, 9468" oninput="showSuggest()" onfocus="showSuggest()" autocomplete="off">
       <div id="suggestList" class="suggest-list"></div>
     </div>
 
@@ -82,7 +82,7 @@
     <div class="condition-box">
       <div style="font-weight: bold; font-size: 0.85rem; color: #333;">アラート通知条件</div>
       <label for="targetPrice">① 指定安値（円）以下で通知</label>
-      <input type="number" id="targetPrice" placeholder="例: 3500">
+      <input type="number" id="targetPrice" placeholder="例: 2500">
 
       <label for="targetDropRate">② 値下がり率（前日比 -%）以上で通知</label>
       <input type="number" id="targetDropRate" placeholder="例: 3">
@@ -100,40 +100,41 @@
   </div>
 
   <script>
-    // 主要・人気銘柄データベース（ひらがな・カタカナ・コード対応）
+    // 主要銘柄データベース（読みがな・英名対応で予測変換を強化）
     const stockDatabase = [
-      { code: "4661", name: "オリエンタルランド" },
-      { code: "9432", name: "NTT" },
-      { code: "9984", name: "ソフトバンクグループ" },
-      { code: "9434", name: "ソフトバンク" },
-      { code: "7203", name: "トヨタ自動車" },
-      { code: "6758", name: "ソニーグループ" },
-      { code: "7974", name: "任天堂" },
-      { code: "8306", name: "三菱UFJフィナンシャル・グループ" },
-      { code: "6861", name: "キーエンス" },
-      { code: "8058", name: "三菱商事" },
-      { code: "9983", name: "ファーストリテイリング" },
-      { code: "6501", name: "日立製作所" },
-      { code: "4502", name: "武田薬品工業" },
-      { code: "7267", name: "ホンダ" },
-      { code: "8031", name: "三井物産" },
-      { code: "6146", name: "ディスコ" },
-      { code: "8001", name: "伊藤忠商事" },
-      { code: "6920", name: "レーザーテック" },
-      { code: "8035", name: "東京エレクトロン" },
-      { code: "6526", name: "ソシオネクスト" },
-      { code: "9104", name: "商船三井" },
-      { code: "9101", name: "日本郵船" },
-      { code: "7211", name: "三菱自動車" },
-      { code: "6723", name: "ルネサスエレクトロニクス" },
-      { code: "4755", name: "楽天グループ" },
-      { code: "8316", name: "三井住友フィナンシャルグループ" },
-      { code: "8411", name: "みずほフィナンシャルグループ" },
-      { code: "2914", name: "JT" },
-      { code: "4519", name: "中外製薬" },
-      { code: "6367", name: "ダイキン工業" },
-      { code: "7011", name: "三菱重工業" },
-      { code: "7012", name: "川崎重工業" }
+      { code: "9468", name: "KADOKAWA", kana: "かどかわ カドカワ kadokawa" },
+      { code: "4661", name: "オリエンタルランド", kana: "おりえんたるらんど ディズニー" },
+      { code: "9432", name: "NTT", kana: "えぬてぃーてぃー 日本電信電話" },
+      { code: "9984", name: "ソフトバンクグループ", kana: "そふとばんくぐりーぷ sbg" },
+      { code: "9434", name: "ソフトバンク", kana: "そふとばんく" },
+      { code: "7203", name: "トヨタ自動車", kana: "とよたじどうしゃ トヨタ" },
+      { code: "6758", name: "ソニーグループ", kana: "そにーぐりーぷ ソニー" },
+      { code: "7974", name: "任天堂", kana: "にんてんどう ニンテンドー" },
+      { code: "8306", name: "三菱UFJフィナンシャル・グループ", kana: "みつびしゆーふぇーじぇい" },
+      { code: "6861", name: "キーエンス", kana: "きーえんす" },
+      { code: "8058", name: "三菱商事", kana: "みつびししょうじ" },
+      { code: "9983", name: "ファーストリテイリング", kana: "ふぁーすとりていりんぐ ユニクロ" },
+      { code: "6501", name: "日立製作所", kana: "ひたちせいさくしょ ひたち" },
+      { code: "4502", name: "武田薬品工業", kana: "たけだやくひん" },
+      { code: "7267", name: "ホンダ", kana: "ほんだ 本田技研工業" },
+      { code: "8031", name: "三井物産", kana: "みついぶっさん" },
+      { code: "6146", name: "ディスコ", kana: "でぃすこ" },
+      { code: "8001", name: "伊藤忠商事", kana: "いとうちゅうしょうじ" },
+      { code: "6920", name: "レーザーテック", kana: "れーざーてっく" },
+      { code: "8035", name: "東京エレクトロン", kana: "とうきょうえれくとろん" },
+      { code: "6526", name: "ソシオネクスト", kana: "そしおねくすと" },
+      { code: "9104", name: "商船三井", kana: "しょうせんみつい" },
+      { code: "9101", name: "日本郵船", kana: "にっぽんゆうせん" },
+      { code: "7211", name: "三菱自動車", kana: "みつびしじどうしゃ" },
+      { code: "6723", name: "ルネサスエレクトロニクス", kana: "るねさす" },
+      { code: "4755", name: "楽天グループ", kana: "らくてん" },
+      { code: "8316", name: "三井住友フィナンシャルグループ", kana: "みついすみとも" },
+      { code: "8411", name: "みずほフィナンシャルグループ", kana: "みずほ" },
+      { code: "2914", name: "JT", kana: "じぇーてぃー 日本たばこ" },
+      { code: "4519", name: "中外製薬", kana: "ちゅうがいせいやく" },
+      { code: "6367", name: "ダイキン工業", kana: "だいきん" },
+      { code: "7011", name: "三菱重工業", kana: "みつびしじゅうこう" },
+      { code: "7012", name: "川崎重工業", kana: "かわさきじゅうこう" }
     ];
 
     let alerts = JSON.parse(localStorage.getItem('stock_alerts') || '[]');
@@ -209,6 +210,8 @@
     }
 
     async function fetchStockQuote(code) {
+      if (!code || !/^\d{4}$/.test(code)) return null; // 4桁の数字コードでない場合は通信しない
+
       try {
         const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${code}.T?interval=1d`;
         const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
@@ -245,9 +248,11 @@
         return;
       }
 
-      // 1文字目から前方一致・部分一致で即検索
+      // コード・漢字名・かな表記・英名すべてから予測ヒットさせる
       const matches = stockDatabase.filter(item => 
-        item.code.includes(val) || item.name.toLowerCase().includes(val)
+        item.code.includes(val) || 
+        item.name.toLowerCase().includes(val) ||
+        (item.kana && item.kana.toLowerCase().includes(val))
       );
 
       if (matches.length === 0) {
@@ -280,12 +285,16 @@
       const datasetCode = document.getElementById('stockInput').dataset.code;
       if (datasetCode) return datasetCode;
 
-      const clean = input.trim();
-      const found = stockDatabase.find(item => item.name === clean || item.code === clean);
+      const clean = input.trim().toLowerCase();
+      const found = stockDatabase.find(item => 
+        item.name.toLowerCase() === clean || 
+        item.code === clean ||
+        (item.kana && item.kana.toLowerCase().includes(clean))
+      );
       if (found) return found.code;
 
       const match = clean.match(/\d{4}/);
-      return match ? match[0] : clean;
+      return match ? match[0] : null;
     }
 
     async function updatePricePreview() {
@@ -297,13 +306,19 @@
 
       const code = resolveCode(input);
       previewDiv.style.display = 'block';
+
+      if (!code) {
+        contentDiv.innerHTML = '<div style="color:#e53935; font-size:0.85rem;">※銘柄コード（4桁）が特定できません。予測候補から選択するか4桁のコードを入力してください。</div>';
+        return;
+      }
+
       contentDiv.innerHTML = '<div style="color:#888; font-size:0.85rem;">現在値を取得中...</div>';
 
       const quote = await fetchStockQuote(code);
       if (quote) {
         contentDiv.innerHTML = createYfHTML(quote);
       } else {
-        contentDiv.innerHTML = '<div style="color:#999; font-size:0.85rem;">※現在値の取得失敗（4桁のコードをお試しください）</div>';
+        contentDiv.innerHTML = '<div style="color:#999; font-size:0.85rem;">※現在値の取得失敗（正しい4桁コードか確認してください）</div>';
       }
     }
 
@@ -333,9 +348,8 @@
       btn.innerText = '🔄 一括更新';
     }
 
-    // 特定の1銘柄だけ個別に更新する関数
     async function refreshSinglePrice(index, code) {
-      priceCache[code] = null; // 一旦クリア
+      priceCache[code] = null;
       renderList();
       
       const quote = await fetchStockQuote(code);
@@ -362,6 +376,13 @@
       }
 
       const code = resolveCode(input);
+      
+      // 実在しない/コードが特定できない銘柄は登録を弾く
+      if (!code || !/^\d{4}$/.test(code)) {
+        alert('実在する4桁の銘柄コードが特定できませんでした。予測候補から選択するか、正しい銘柄コード（4桁数字）を入力してください。');
+        return;
+      }
+
       const cleanName = input.replace(/\s*\(\d{4}\)/, '');
       const alertData = { name: cleanName, code: code, price: price || null, rate: rate || null };
 
@@ -418,7 +439,7 @@
               ${item.rate ? `<span class="condition-tag">下落: -${item.rate}%以上</span>` : ''}
             </div>
             <div class="btn-group">
-              <button class="mini-btn reload-btn" onclick="refreshSinglePrice(${index}, '${item.code}')">🔄 再取得</button>
+              <button class="icon-btn" onclick="refreshSinglePrice(${index}, '${item.code}')" title="株価を再取得">🔄</button>
               <button class="mini-btn edit-btn" onclick="editAlert(${index})">編集</button>
               <button class="mini-btn delete-btn" onclick="deleteAlert(${index})">削除</button>
             </div>
