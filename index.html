@@ -19,7 +19,7 @@
     .yf-price-box { display: flex; align-items: baseline; gap: 8px; margin-top: 6px; }
     .yf-icon-up { background: #1e88e5; color: white; border-radius: 4px; padding: 2px 6px; font-weight: bold; font-size: 0.85rem; }
     .yf-icon-down { background: #e53935; color: white; border-radius: 4px; padding: 2px 6px; font-weight: bold; font-size: 0.85rem; }
-    .yf-price-val { font-size: 1.6rem; font-weight: bold; color: #111; letter-spacing: -0.5px; }
+    .yf-price-val { font-size: 1.5rem; font-weight: bold; color: #111; letter-spacing: -0.5px; }
     .yf-change-up { color: #1e88e5; font-weight: bold; font-size: 0.9rem; line-height: 1.2; }
     .yf-change-down { color: #e53935; font-weight: bold; font-size: 0.9rem; line-height: 1.2; }
 
@@ -27,7 +27,7 @@
     .submit-btn { width: 100%; padding: 12px; background: #007aff; color: white; border: none; border-radius: 6px; font-size: 1rem; font-weight: bold; margin-top: 14px; cursor: pointer; }
     .notify-btn { width: 100%; padding: 10px; background: #34c759; color: white; border: none; border-radius: 6px; font-size: 0.9rem; font-weight: bold; margin-bottom: 12px; cursor: pointer; }
     
-    .item { padding: 12px; border-radius: 8px; border-bottom: 1px solid #eee; transition: background 0.2s; position: relative; margin-bottom: 8px; background: #fff; border: 1px solid #e5e7eb; }
+    .item { padding: 12px; border-radius: 8px; border-bottom: 1px solid #eee; position: relative; margin-bottom: 8px; background: #fff; border: 1px solid #e5e7eb; }
     .item-header { display: flex; justify-content: space-between; align-items: center; }
     .item-title { font-size: 1.05rem; font-weight: bold; color: #111; }
     .condition-tag { font-size: 0.75rem; color: #555; background: #eef4ff; padding: 3px 6px; border-radius: 4px; display: inline-block; margin-right: 4px; margin-top: 6px; }
@@ -41,7 +41,6 @@
 </head>
 <body>
 
-  <!-- ステータスバー（市場時間 & 前回起動日時） -->
   <div class="status-bar">
     <div class="status-row">
       <div><span id="statusDot" class="status-dot"></span> <span id="statusText">監視待機中</span></div>
@@ -57,18 +56,11 @@
   <div class="card">
     <h2 id="formTitle">銘柄の登録</h2>
     
-    <label for="stockInput">銘柄コードまたはキーワード</label>
-    <input type="text" id="stockInput" list="stockSuggestions" placeholder="例: 9432 (NTT) / 7203 (トヨタ)" oninput="updatePricePreview()">
-    
-    <datalist id="stockSuggestions">
-      <option value="9432: NTT"></option>
-      <option value="9984: ソフトバンクグループ"></option>
-      <option value="7203: トヨタ自動車"></option>
-      <option value="6758: ソニーグループ"></option>
-    </datalist>
+    <label for="stockInput">銘柄コードまたは名前</label>
+    <input type="text" id="stockInput" placeholder="例: 9432 または NTT" oninput="updatePricePreview()">
 
     <div id="pricePreview" style="display: none; margin-top: 10px; background: #f8fafc; padding: 10px; border-radius: 8px;">
-      <div style="font-size: 0.75rem; color: #888;">リアルタイム株価 (参考)</div>
+      <div style="font-size: 0.75rem; color: #888;">現在株価 (参考)</div>
       <div id="previewContent">データ取得中...</div>
     </div>
 
@@ -93,12 +85,13 @@
   </div>
 
   <script>
-    const defaultList = {
-      "9432": "NTT",
-      "9984": "ソフトバンクグループ",
-      "9434": "ソフトバンク",
-      "7203": "トヨタ自動車",
-      "6758": "ソニーグループ"
+    const nameToCodeMap = {
+      "NTT": "9432",
+      "ソフトバンクグループ": "9984",
+      "ソフトバンク": "9434",
+      "トヨタ": "7203",
+      "トヨタ自動車": "7203",
+      "ソニー": "6758"
     };
 
     let alerts = JSON.parse(localStorage.getItem('stock_alerts') || '[]');
@@ -107,8 +100,8 @@
 
     window.onload = () => {
       updateLastOpenTime();
-      renderList();
       checkMarketTimeAndMonitor();
+      renderList();
       setInterval(checkMarketTimeAndMonitor, 30000);
     };
 
@@ -133,11 +126,11 @@
             alert('通知が許可されました！');
             new Notification("株価アラート", { body: "通知テスト：設定完了" });
           } else {
-            alert('通知が拒否されました。設定アプリから通知をオンにしてください。');
+            alert('通知が拒否されました。設定から許可してください。');
           }
         });
       } else {
-        alert('このブラウザ環境では直接の通知を起動できません。「ホーム画面に追加」を行ってアプリとして起動してみてください。');
+        alert('このブラウザでは通知機能が有効化できません。「ホーム画面に追加」を行ってください。');
       }
     }
 
@@ -167,14 +160,10 @@
       refreshAllPrices();
     }
 
-    // Yahoo! Finance APIからリアルタイムで株価を取得する関数
-    async function fetchStockQuote(symbol) {
-      const ticker = symbol.endsWith('.T') ? symbol : `${symbol}.T`;
-      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?interval=1d`;
+    async function fetchStockQuote(code) {
       try {
-        const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
-        const data = await res.json();
-        const json = JSON.parse(data.contents);
+        const res = await fetch(`https://corsproxy.io/?https://query1.finance.yahoo.com/v8/finance/chart/${code}.T?interval=1d`);
+        const json = await res.json();
         const result = json.chart.result[0];
         const meta = result.meta;
 
@@ -189,9 +178,14 @@
           changePercent: parseFloat(changePercent.toFixed(2))
         };
       } catch (e) {
-        console.error("株価取得エラー:", e);
         return null;
       }
+    }
+
+    function resolveCode(input) {
+      const clean = input.trim();
+      if (nameToCodeMap[clean]) return nameToCodeMap[clean];
+      return clean;
     }
 
     async function updatePricePreview() {
@@ -201,7 +195,7 @@
 
       if (!input) { previewDiv.style.display = 'none'; return; }
 
-      const code = input.split(':')[0].trim();
+      const code = resolveCode(input);
       previewDiv.style.display = 'block';
       contentDiv.innerHTML = '<div style="color:#888; font-size:0.85rem;">株価を取得中...</div>';
 
@@ -209,7 +203,7 @@
       if (quote) {
         contentDiv.innerHTML = createYfHTML(quote);
       } else {
-        contentDiv.innerHTML = '<div style="color:#999; font-size:0.85rem;">※株価が取得できませんでした（コード例: 9432）</div>';
+        contentDiv.innerHTML = '<div style="color:#999; font-size:0.85rem;">※株価を取得中、またはコード入力（例: 9432）をお試しください</div>';
       }
     }
 
@@ -231,56 +225,27 @@
     }
 
     async function refreshAllPrices() {
-      for (let i = 0; i < alerts.length; i++) {
-        const item = alerts[i];
+      for (let item of alerts) {
         const quote = await fetchStockQuote(item.code);
         if (quote) {
           priceCache[item.code] = quote;
-          checkSingleAlert(item, quote);
         }
       }
       renderList();
     }
 
-    function checkSingleAlert(item, quote) {
-      if (!quote) return;
-      let isTriggered = false;
-      let message = '';
-
-      if (item.price && quote.price <= parseFloat(item.price)) {
-        isTriggered = true;
-        message += `指定安値 (${item.price}円) 以下に達しました！(現在: ${quote.price}円)\n`;
-      }
-
-      if (item.rate && quote.changePercent <= 0 && Math.abs(quote.changePercent) >= parseFloat(item.rate)) {
-        isTriggered = true;
-        message += `値下がり率 (-${item.rate}%) を超えました！(現在: ${quote.changePercent}%)\n`;
-      }
-
-      if (isTriggered && ('Notification' in window) && Notification.permission === 'granted') {
-        new Notification(`🚨 株価アラート: ${item.name}`, { body: message });
-      }
-    }
-
-    async function addAlert() {
+    function addAlert() {
       const input = document.getElementById('stockInput').value.trim();
       const price = document.getElementById('targetPrice').value;
       const rate = document.getElementById('targetDropRate').value;
 
-      if (!input) {
-        alert('銘柄コードまたは名前を入力してください。');
+      if (!input || (!price && !rate)) {
+        alert('銘柄名/コードと、少なくとも1つのアラート条件を入力してください。');
         return;
       }
 
-      if (!price && !rate) {
-        alert('①指定安値 または ②値下がり率 のどちらかを入力してください。');
-        return;
-      }
-
-      const rawCode = input.split(':')[0].trim();
-      const name = defaultList[rawCode] || input.split(':')[1]?.trim() || `コード:${rawCode}`;
-
-      const alertData = { name: name, code: rawCode, price: price || null, rate: rate || null };
+      const code = resolveCode(input);
+      const alertData = { name: input, code: code, price: price || null, rate: rate || null };
 
       if (editingIndex !== null) {
         alerts[editingIndex] = alertData;
@@ -313,8 +278,7 @@
       listDiv.innerHTML = alerts.map((item, index) => {
         const yfUrl = `https://finance.yahoo.co.jp/quote/${item.code}.T`;
         const quote = priceCache[item.code];
-        
-        const priceDisplay = quote ? createYfHTML(quote) : '<div style="font-size:0.8rem; color:#aaa; margin-top:4px;">現在株価を取得中...</div>';
+        const priceDisplay = quote ? createYfHTML(quote) : '<div style="font-size:0.8rem; color:#888; margin-top:4px;">株価を更新中...</div>';
 
         return `
           <div class="item">
@@ -322,13 +286,10 @@
               <span class="item-title">${item.name} (${item.code})</span>
               <a href="${yfUrl}" target="_blank" class="yf-link-btn">Yahoo! ↗</a>
             </div>
-
-            <!-- 現在株価と前日比のリアルタイム表示 -->
             ${priceDisplay}
-
-            <div style="margin-top: 6px;">
-              ${item.price ? `<span class="condition-tag">安値条件: ${item.price}円以下</span>` : ''}
-              ${item.rate ? `<span class="condition-tag">下落条件: -${item.rate}%以上</span>` : ''}
+            <div>
+              ${item.price ? `<span class="condition-tag">安値: ${item.price}円以下</span>` : ''}
+              ${item.rate ? `<span class="condition-tag">下落: -${item.rate}%以上</span>` : ''}
             </div>
             <div class="btn-group">
               <button class="mini-btn edit-btn" onclick="editAlert(${index})">編集</button>
@@ -341,7 +302,7 @@
 
     function editAlert(index) {
       const item = alerts[index];
-      document.getElementById('stockInput').value = `${item.code}: ${item.name}`;
+      document.getElementById('stockInput').value = item.name;
       document.getElementById('targetPrice').value = item.price || '';
       document.getElementById('targetDropRate').value = item.rate || '';
       
