@@ -7,7 +7,7 @@
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 12px; background: #f0f2f5; margin: 0; -webkit-user-select: none; user-select: none; }
     .card { background: white; padding: 16px; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); margin-bottom: 12px; }
-    h2 { margin-top: 0; font-size: 1.1rem; color: #1a1a1a; border-bottom: 2px solid #007aff; padding-bottom: 6px; }
+    h2 { margin: 0; font-size: 1.1rem; color: #1a1a1a; }
     label { font-size: 0.8rem; color: #666; display: block; margin-top: 10px; font-weight: bold; }
     input { width: 100%; padding: 10px; margin-top: 4px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 1rem; -webkit-user-select: text; user-select: text; }
     
@@ -26,7 +26,10 @@
     .condition-box { background: #f9fafb; border: 1px solid #e5e7eb; padding: 12px; border-radius: 8px; margin-top: 12px; }
     .submit-btn { width: 100%; padding: 12px; background: #007aff; color: white; border: none; border-radius: 6px; font-size: 1rem; font-weight: bold; margin-top: 14px; cursor: pointer; }
     .notify-btn { width: 100%; padding: 10px; background: #34c759; color: white; border: none; border-radius: 6px; font-size: 0.9rem; font-weight: bold; margin-bottom: 12px; cursor: pointer; }
-    
+    .refresh-btn { padding: 6px 12px; background: #007aff; color: white; border: none; border-radius: 16px; font-size: 0.75rem; font-weight: bold; cursor: pointer; }
+    .refresh-btn:disabled { background: #ccc; cursor: not-allowed; }
+
+    .list-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #007aff; padding-bottom: 6px; margin-bottom: 12px; }
     .item { padding: 12px; border-radius: 8px; position: relative; margin-bottom: 8px; background: #fff; border: 1px solid #e5e7eb; }
     .item-header { display: flex; justify-content: space-between; align-items: center; }
     .item-title { font-size: 1.05rem; font-weight: bold; color: #111; }
@@ -54,10 +57,12 @@
   <button class="notify-btn" onclick="requestNotificationPermission()">🔔 通知の許可を設定する</button>
 
   <div class="card">
-    <h2 id="formTitle">銘柄の登録</h2>
+    <div style="border-bottom: 2px solid #007aff; padding-bottom: 6px;">
+      <h2 id="formTitle">銘柄の登録</h2>
+    </div>
     
     <label for="stockInput">銘柄コードまたは名前</label>
-    <input type="text" id="stockInput" placeholder="例: 9432 または NTT" oninput="updatePricePreview()">
+    <input type="text" id="stockInput" placeholder="例: 9432 または NTT" oninput="debouncePricePreview()">
 
     <div id="pricePreview" style="display: none; margin-top: 10px; background: #f8fafc; padding: 10px; border-radius: 8px;">
       <div style="font-size: 0.75rem; color: #888;">現在株価 (参考)</div>
@@ -77,9 +82,9 @@
   </div>
 
   <div class="card">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
+    <div class="list-header">
       <h2>監視中のリスト</h2>
-      <span style="font-size:0.75rem; color:#aaa;">💡 編集・削除可能</span>
+      <button id="refreshBtn" class="refresh-btn" onclick="manualRefresh()">🔄 最新株価に更新</button>
     </div>
     <div id="alertList"></div>
   </div>
@@ -97,6 +102,7 @@
     let alerts = JSON.parse(localStorage.getItem('stock_alerts') || '[]');
     let editingIndex = null;
     let priceCache = {};
+    let debounceTimer = null;
 
     window.onload = () => {
       updateLastOpenTime();
@@ -162,15 +168,29 @@
 
     async function fetchStockQuote(code) {
       const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${code}.T?interval=1d`;
-      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}&timestamp=${Date.now()}`;
       
       try {
-        const res = await fetch(proxyUrl);
+        const proxyUrl1 = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}&timestamp=${Date.now()}`;
+        const res = await fetch(proxyUrl1, { signal: AbortSignal.timeout(4000) });
         const data = await res.json();
         const json = JSON.parse(data.contents);
+        return parseYahooData(json);
+      } catch (e) {
+        try {
+          const proxyUrl2 = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+          const res = await fetch(proxyUrl2, { signal: AbortSignal.timeout(4000) });
+          const json = await res.json();
+          return parseYahooData(json);
+        } catch (e2) {
+          return null;
+        }
+      }
+    }
+
+    function parseYahooData(json) {
+      try {
         const result = json.chart.result[0];
         const meta = result.meta;
-
         const price = meta.regularMarketPrice;
         const prevClose = meta.chartPreviousClose || meta.previousClose;
         const changeNum = price - prevClose;
@@ -192,6 +212,11 @@
       return clean;
     }
 
+    function debouncePricePreview() {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(updatePricePreview, 500);
+    }
+
     async function updatePricePreview() {
       const input = document.getElementById('stockInput').value.trim();
       const previewDiv = document.getElementById('pricePreview');
@@ -201,13 +226,13 @@
 
       const code = resolveCode(input);
       previewDiv.style.display = 'block';
-      contentDiv.innerHTML = '<div style="color:#888; font-size:0.85rem;">株価を取得中...</div>';
+      contentDiv.innerHTML = '<div style="color:#888; font-size:0.85rem;">取得中...</div>';
 
       const quote = await fetchStockQuote(code);
       if (quote) {
         contentDiv.innerHTML = createYfHTML(quote);
       } else {
-        contentDiv.innerHTML = '<div style="color:#999; font-size:0.85rem;">※株価取得不可（数字4桁のコードをお試しください）</div>';
+        contentDiv.innerHTML = '<div style="color:#999; font-size:0.85rem;">※取得に失敗しました（4桁の銘柄コードをお試しください）</div>';
       }
     }
 
@@ -226,6 +251,15 @@
           </div>
         </div>
       `;
+    }
+
+    async function manualRefresh() {
+      const btn = document.getElementById('refreshBtn');
+      btn.disabled = true;
+      btn.innerText = '🔄 更新中...';
+      await refreshAllPrices();
+      btn.disabled = false;
+      btn.innerText = '🔄 最新株価に更新';
     }
 
     async function refreshAllPrices() {
