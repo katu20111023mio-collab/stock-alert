@@ -102,7 +102,7 @@
   </div>
 
   <footer class="footer">
-    株価アラート PWA ver 1.1.1
+    株価アラート PWA ver 1.1.2
   </footer>
 
   <script>
@@ -181,7 +181,26 @@
 
     function debounceSearch() {
       clearTimeout(searchTimer);
-      searchTimer = setTimeout(searchStock, 300);
+      searchTimer = setTimeout(searchStock, 200);
+    }
+
+    async function fetchWithCorsProxy(targetUrl) {
+      const proxies = [
+        `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`,
+        `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`
+      ];
+
+      for (let proxy of proxies) {
+        try {
+          const res = await fetch(proxy);
+          if (res.ok) {
+            return await res.json();
+          }
+        } catch (e) {
+          continue;
+        }
+      }
+      return null;
     }
 
     async function searchStock() {
@@ -198,13 +217,14 @@
 
       try {
         const targetUrl = `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&quotesCount=10&newsCount=0&lang=ja-JP&region=JP`;
-        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
-        
-        const res = await fetch(proxyUrl);
-        const wrapperData = await res.json();
-        const data = JSON.parse(wrapperData.contents);
+        const data = await fetchWithCorsProxy(targetUrl);
 
-        const matches = (data.quotes || []).filter(q => q.symbol && q.symbol.endsWith('.T'));
+        if (!data || !data.quotes) {
+          suggestDiv.innerHTML = '<div style="padding:12px; font-size:0.85rem; color:#e53935;">検索エラーが発生しました</div>';
+          return;
+        }
+
+        const matches = data.quotes.filter(q => q.symbol && q.symbol.endsWith('.T'));
 
         if (matches.length === 0) {
           suggestDiv.innerHTML = '<div style="padding:12px; font-size:0.85rem; color:#999;">該当する銘柄が見つかりません</div>';
@@ -244,13 +264,9 @@
 
       try {
         const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${code}.T?interval=1d`;
-        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
-        
-        const res = await fetch(proxyUrl);
-        if (!res.ok) return null;
-        
-        const wrapperData = await res.json();
-        const data = JSON.parse(wrapperData.contents);
+        const data = await fetchWithCorsProxy(targetUrl);
+
+        if (!data || !data.chart || !data.chart.result || !data.chart.result[0]) return null;
         
         const result = data.chart.result[0];
         const meta = result.meta;
