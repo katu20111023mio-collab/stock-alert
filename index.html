@@ -27,7 +27,7 @@
     .submit-btn { width: 100%; padding: 12px; background: #007aff; color: white; border: none; border-radius: 6px; font-size: 1rem; font-weight: bold; margin-top: 14px; cursor: pointer; }
     .notify-btn { width: 100%; padding: 10px; background: #34c759; color: white; border: none; border-radius: 6px; font-size: 0.9rem; font-weight: bold; margin-bottom: 12px; cursor: pointer; }
     
-    .item { padding: 12px; border-radius: 8px; border-bottom: 1px solid #eee; position: relative; margin-bottom: 8px; background: #fff; border: 1px solid #e5e7eb; }
+    .item { padding: 12px; border-radius: 8px; position: relative; margin-bottom: 8px; background: #fff; border: 1px solid #e5e7eb; }
     .item-header { display: flex; justify-content: space-between; align-items: center; }
     .item-title { font-size: 1.05rem; font-weight: bold; color: #111; }
     .condition-tag { font-size: 0.75rem; color: #555; background: #eef4ff; padding: 3px 6px; border-radius: 4px; display: inline-block; margin-right: 4px; margin-top: 6px; }
@@ -161,9 +161,13 @@
     }
 
     async function fetchStockQuote(code) {
+      const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${code}.T?interval=1d`;
+      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}&timestamp=${Date.now()}`;
+      
       try {
-        const res = await fetch(`https://corsproxy.io/?https://query1.finance.yahoo.com/v8/finance/chart/${code}.T?interval=1d`);
-        const json = await res.json();
+        const res = await fetch(proxyUrl);
+        const data = await res.json();
+        const json = JSON.parse(data.contents);
         const result = json.chart.result[0];
         const meta = result.meta;
 
@@ -203,7 +207,7 @@
       if (quote) {
         contentDiv.innerHTML = createYfHTML(quote);
       } else {
-        contentDiv.innerHTML = '<div style="color:#999; font-size:0.85rem;">※株価を取得中、またはコード入力（例: 9432）をお試しください</div>';
+        contentDiv.innerHTML = '<div style="color:#999; font-size:0.85rem;">※株価取得不可（数字4桁のコードをお試しください）</div>';
       }
     }
 
@@ -227,9 +231,7 @@
     async function refreshAllPrices() {
       for (let item of alerts) {
         const quote = await fetchStockQuote(item.code);
-        if (quote) {
-          priceCache[item.code] = quote;
-        }
+        priceCache[item.code] = quote || { error: true };
       }
       renderList();
     }
@@ -278,7 +280,13 @@
       listDiv.innerHTML = alerts.map((item, index) => {
         const yfUrl = `https://finance.yahoo.co.jp/quote/${item.code}.T`;
         const quote = priceCache[item.code];
-        const priceDisplay = quote ? createYfHTML(quote) : '<div style="font-size:0.8rem; color:#888; margin-top:4px;">株価を更新中...</div>';
+        
+        let priceDisplay = '<div style="font-size:0.8rem; color:#888; margin-top:4px;">株価を更新中...</div>';
+        if (quote && !quote.error) {
+          priceDisplay = createYfHTML(quote);
+        } else if (quote && quote.error) {
+          priceDisplay = '<div style="font-size:0.8rem; color:#e53935; margin-top:4px;">※現在値の取得失敗</div>';
+        }
 
         return `
           <div class="item">
