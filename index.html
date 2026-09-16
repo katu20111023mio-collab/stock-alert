@@ -36,7 +36,6 @@
     h2 { margin: 0; font-size: 1.1rem; color: var(--text-color); }
     label { font-size: 0.8rem; color: var(--sub-text); display: block; margin-top: 10px; font-weight: bold; }
     
-    /* iOSの自動ズーム防止のため、font-sizeを16px(1rem)に固定 */
     input, select, textarea { width: 100%; padding: 10px; margin-top: 4px; border: 1px solid var(--border-color); border-radius: 6px; box-sizing: border-box; font-size: 16px; background: var(--input-bg); color: var(--text-color); -webkit-user-select: text; user-select: text; }
     textarea { resize: vertical; height: 60px; font-family: inherit; }
 
@@ -69,8 +68,6 @@
     .list-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #007aff; padding-bottom: 6px; margin-bottom: 12px; }
     .sort-filter-box { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; font-size: 0.8rem; background: var(--bg-color); padding: 8px; border-radius: 8px; border: 1px solid var(--border-color); }
     .filter-row { display: flex; align-items: center; gap: 6px; }
-    
-    /* 絞り込み入力欄の文字サイズも16pxに揃えて自動ズームをブロック */
     .filter-row input { padding: 4px 6px; font-size: 16px; margin: 0; }
 
     .item { padding: 12px; border-radius: 8px; position: relative; margin-bottom: 8px; background: var(--card-bg); border: 1px solid var(--border-color); }
@@ -112,7 +109,7 @@
   <div class="header-bar">
     <div class="header-title-box">
       <h2 style="font-size: 1.2rem;">📈 株価アラート</h2>
-      <span class="version-tag">ver 1.7.3 (26/09)</span>
+      <span class="version-tag">ver 1.8.0</span>
     </div>
     <button class="dark-toggle-btn" onclick="toggleDarkMode()">🌙 ダークモード</button>
   </div>
@@ -122,7 +119,10 @@
       <div><span id="statusDot" class="status-dot"></span> <span id="statusText">監視待機中</span></div>
       <div id="marketTimeText" style="color:#888;">市場時間判定中...</div>
     </div>
-    <div style="margin-top: 4px; color: #777; font-size: 0.7rem;" id="lastOpenTime">
+    <div style="margin-top: 4px; color: #007aff; font-weight: bold; font-size: 0.7rem;" id="nextOpenTimeText">
+      次回営業: 計算中...
+    </div>
+    <div style="margin-top: 2px; color: #777; font-size: 0.7rem;" id="lastOpenTime">
       前回の起動: 初回アクセス
     </div>
   </div>
@@ -192,7 +192,6 @@
   <script>
     const MY_SERVER_URL = "https://autumn-shape-d4ac.sub-katu20111023mio.workers.dev";
 
-    // 主要銘柄の日本語名固定マップ
     const NAME_FIX_MAP = {
       "7203": "トヨタ自動車",
       "9432": "NTT",
@@ -276,11 +275,45 @@
       return (time >= 900 && time <= 1130) || (time >= 1230 && time <= 1530);
     }
 
+    // 次回の営業開始日時を計算する処理
+    function getNextMarketOpenText() {
+      const now = new Date();
+      const day = now.getDay();
+      const time = now.getHours() * 100 + now.getMinutes();
+
+      // 平日の前場開始前（〜09:00）
+      if (day >= 1 && day <= 5 && time < 900) {
+        return "次回営業: 本日 09:00〜";
+      }
+      // 平日の昼休み（11:30〜12:30）
+      if (day >= 1 && day <= 5 && time >= 1130 && time < 1230) {
+        return "次回営業: 本日 12:30〜（後場）";
+      }
+
+      // 翌日以降の営業日を探す
+      let nextDate = new Date(now);
+      nextDate.setDate(nextDate.getDate() + 1);
+
+      while (nextDate.getDay() === 0 || nextDate.getDay() === 6) {
+        nextDate.setDate(nextDate.getDate() + 1);
+      }
+
+      const isTomorrow = (nextDate.getDate() === now.getDate() + 1);
+      const daysStr = ["日", "月", "火", "水", "木", "金", "土"];
+      const dateLabel = isTomorrow ? "明日" : `${nextDate.getMonth() + 1}/${nextDate.getDate()}(${daysStr[nextDate.getDay()]})`;
+
+      return `次回営業: ${dateLabel} 09:00〜`;
+    }
+
     function checkMarketTimeAndMonitor() {
       const isOpen = isMarketOpen();
       document.getElementById('statusDot').className = isOpen ? "status-dot active" : "status-dot";
       document.getElementById('statusText').innerText = isOpen ? "リアルタイム監視中" : "監視停止中（時間外）";
       document.getElementById('marketTimeText').innerText = isOpen ? "市場：営業時間内" : "市場：営業時間外";
+      
+      const nextText = isOpen ? "次回営業: 取引進行中" : getNextMarketOpenText();
+      document.getElementById('nextOpenTimeText').innerText = nextText;
+
       refreshAllPrices();
     }
 
