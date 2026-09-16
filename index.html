@@ -62,8 +62,8 @@
     .preview-name-line { font-size: 0.8rem; font-weight: bold; color: #007aff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 170px; }
     .preview-price-line { font-size: 0.85rem; font-weight: bold; margin-top: 2px; display: flex; align-items: center; gap: 6px; }
 
-    /* アイコンだけの翻訳ボタン */
-    .trans-btn { background: none; border: 1px solid #007aff; color: #007aff; font-size: 0.85rem; width: 28px; height: 26px; border-radius: 4px; cursor: pointer; font-weight: bold; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    /* 完全なアイコンだけの翻訳ボタン */
+    .trans-btn { background: none; border: 1px solid #007aff; color: #007aff; font-size: 0.9rem; width: 30px; height: 26px; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
     .trans-btn:hover { background: #007aff; color: white; }
 
     .yf-price-box { display: flex; align-items: baseline; gap: 6px; }
@@ -100,29 +100,10 @@
     .star-btn.active { color: #ffcc00; }
 
     .price-row-wrapper { display: flex; justify-content: space-between; align-items: center; margin-top: 3px; }
-    .list-info-row { display: flex; align-items: center; justify-content: space-between; margin-top: 4px; gap: 6px; flex-wrap: wrap; }
-    
-    .progress-wrapper { display: flex; align-items: center; gap: 6px; }
-    .progress-container { background: var(--border-color); border-radius: 4px; height: 4px; width: 90px; overflow: hidden; display: inline-block; vertical-align: middle; }
-    .progress-bar { height: 100%; background: #007aff; width: 0%; transition: width 0.3s; }
-    .progress-bar.triggered-bar { background: #ff3b30; }
-    .progress-text { font-size: 0.68rem; color: var(--sub-text); }
-
     .tags-wrapper { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
-    .condition-tag { font-size: 0.68rem; color: var(--sub-text); background: var(--preview-bg); padding: 1px 4px; border-radius: 4px; }
-    .dividend-tag { font-size: 0.68rem; color: #2e7d32; background: #e8f5e9; padding: 1px 4px; border-radius: 4px; font-weight: bold; }
     .gift-tag { font-size: 0.68rem; color: #d81b60; background: #fce4ec; padding: 1px 4px; border-radius: 4px; font-weight: bold; }
-    .chance-badge { font-size: 0.65rem; color: #d97706; background: #fef3c7; padding: 1px 5px; border-radius: 10px; font-weight: bold; margin-left: 2px; }
-    .party-badge { font-size: 0.7rem; background: #ff3b30; color: white; padding: 1px 5px; border-radius: 4px; font-weight: bold; margin-left: 4px; animation: bounce 1s infinite; }
     
-    body.dark-mode .dividend-tag { color: #81c784; background: #1b3820; }
     body.dark-mode .gift-tag { color: #f48fb1; background: #3a1c28; }
-    body.dark-mode .chance-badge { color: #fcd34d; background: #451a03; }
-
-    @keyframes bounce {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-3px); }
-    }
 
     .memo-tag { font-size: 0.72rem; color: var(--sub-text); background: var(--bg-color); padding: 3px 6px; border-radius: 4px; margin-top: 4px; border: 1px dashed var(--border-color); white-space: pre-wrap; }
 
@@ -131,8 +112,6 @@
     
     .btn-group { display: flex; gap: 4px; margin-top: 4px; justify-content: flex-end; align-items: center; }
     .icon-btn { padding: 3px 8px; font-size: 0.8rem; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; color: var(--text-color); display: inline-flex; align-items: center; justify-content: center; }
-    .icon-btn.gift-active { color: #d81b60; border-color: #fce4ec; background: #fce4ec; }
-    body.dark-mode .icon-btn.gift-active { color: #f48fb1; background: #3a1c28; border-color: #55273a; }
 
     .dark-toggle-btn { background: none; border: 1px solid var(--border-color); padding: 3px 6px; border-radius: 10px; font-size: 0.7rem; cursor: pointer; color: var(--text-color); }
 
@@ -147,11 +126,6 @@
     .modal-btn { flex: 1; padding: 8px; border: none; border-radius: 6px; font-weight: bold; font-size: 0.85rem; cursor: pointer; }
     .modal-btn-cancel { background: var(--border-color); color: var(--text-color); }
     .modal-btn-submit { background: #007aff; color: white; }
-
-    #startupPopupModal .modal-content { max-width: 320px; border: 2px solid #ff3b30; }
-    .popup-item-list { font-size: 0.8rem; margin: 10px 0; max-height: 150px; overflow-y: auto; background: var(--bg-color); padding: 8px; border-radius: 6px; }
-    
-    #minimizedBanner { position: fixed; bottom: 15px; right: 15px; background: #ff3b30; color: white; padding: 8px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.3); display: none; align-items: center; gap: 6px; cursor: pointer; z-index: 999; animation: bounce 1s infinite; }
   </style>
 </head>
 <body>
@@ -306,25 +280,10 @@
     </div>
   </div>
 
-  <div id="startupPopupModal" class="modal-overlay">
-    <div class="modal-content">
-      <div class="modal-title" style="color:#ff3b30;">🚨 条件に達した銘柄があります！</div>
-      <p style="font-size:0.75rem; color:var(--sub-text); margin-top:0;">以下の銘柄が現在の条件に一致しています。</p>
-      <div id="startupPopupList" class="popup-item-list"></div>
-      <div class="modal-btn-group">
-        <button class="modal-btn modal-btn-cancel" onclick="minimizeStartupPopup()">小さくする</button>
-        <button class="modal-btn modal-btn-submit" onclick="closeStartupPopup完全()">閉じる</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="minimizedBanner" onclick="reopenStartupPopup()">
-    🚨 条件達成銘柄あり <span style="font-size:0.65rem; background:white; color:#ff3b30; padding:1px 5px; border-radius:10px;">表示</span>
-  </div>
-
   <script>
     const MY_SERVER_URL = "https://autumn-shape-d4ac.sub-katu20111023mio.workers.dev";
 
+    // 英語表記になりやすい銘柄を正確な日本語名に補正する辞書
     const NAME_FIX_MAP = {
       "7203": "トヨタ自動車",
       "9432": "NTT",
@@ -338,7 +297,8 @@
       "6758": "ソニーグループ",
       "7974": "任天堂",
       "7601": "ポプラ",
-      "9101": "日本郵船"
+      "9101": "日本郵船",
+      "5411": "JFEホールディングス"
     };
 
     function getManualTranslation(code, rawName) {
@@ -348,6 +308,7 @@
         .replace(/CO\s*LTD/gi, "")
         .replace(/INC/gi, "")
         .replace(/CORP/gi, "")
+        .replace(/HOLDINGS/gi, "ホールディングス")
         .replace(/GROUP/gi, "グループ")
         .trim();
       return cleaned || rawName;
@@ -669,20 +630,6 @@
       localStorage.setItem('stock_alerts', JSON.stringify(alerts));
       renderList();
       btn.innerText = "🔄 一括更新";
-    }
-
-    function minimizeStartupPopup() {
-      document.getElementById('startupPopupModal').style.display = 'none';
-      document.getElementById('minimizedBanner').style.display = 'flex';
-    }
-
-    function closeStartupPopup完全() {
-      document.getElementById('startupPopupModal').style.display = 'none';
-    }
-
-    function reopenStartupPopup() {
-      document.getElementById('startupPopupModal').style.display = 'flex';
-      document.getElementById('minimizedBanner').style.display = 'none';
     }
 
     updateGlobalNotifyBtn();
