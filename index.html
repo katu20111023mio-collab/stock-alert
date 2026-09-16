@@ -5,29 +5,59 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>株価アラート PWA</title>
   <style>
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 12px; background: #f0f2f5; margin: 0; -webkit-user-select: none; user-select: none; }
-    .card { background: white; padding: 16px; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); margin-bottom: 12px; }
-    h2 { margin: 0; font-size: 1.1rem; color: #1a1a1a; }
-    label { font-size: 0.8rem; color: #666; display: block; margin-top: 10px; font-weight: bold; }
+    :root {
+      --bg-color: #f0f2f5;
+      --card-bg: #ffffff;
+      --text-color: #1a1a1a;
+      --sub-text: #666666;
+      --border-color: #e5e7eb;
+      --input-bg: #ffffff;
+      --preview-bg: #eef4ff;
+      --preview-border: #cce0ff;
+    }
+
+    body.dark-mode {
+      --bg-color: #121212;
+      --card-bg: #1e1e1e;
+      --text-color: #e0e0e0;
+      --sub-text: #aaa;
+      --border-color: #333;
+      --input-bg: #2a2a2a;
+      --preview-bg: #1a2638;
+      --preview-border: #2c4263;
+    }
+
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 12px; background: var(--bg-color); color: var(--text-color); margin: 0; -webkit-user-select: none; user-select: none; transition: background 0.3s, color 0.3s; }
+    .header-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .card { background: var(--card-bg); padding: 16px; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); margin-bottom: 12px; transition: background 0.3s; }
+    h2 { margin: 0; font-size: 1.1rem; color: var(--text-color); }
+    label { font-size: 0.8rem; color: var(--sub-text); display: block; margin-top: 10px; font-weight: bold; }
     
-    input { width: 100%; padding: 10px; margin-top: 4px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 1rem; -webkit-user-select: text; user-select: text; }
-    
-    .status-bar { font-size: 0.75rem; color: #555; background: #eef4ff; padding: 10px 12px; border-radius: 6px; margin-bottom: 12px; }
+    input, select, textarea { width: 100%; padding: 10px; margin-top: 4px; border: 1px solid var(--border-color); border-radius: 6px; box-sizing: border-box; font-size: 1rem; background: var(--input-bg); color: var(--text-color); -webkit-user-select: text; user-select: text; }
+    textarea { resize: vertical; height: 60px; font-family: inherit; }
+
+    .status-bar { font-size: 0.75rem; color: var(--sub-text); background: var(--preview-bg); padding: 10px 12px; border-radius: 6px; margin-bottom: 12px; }
     .status-row { display: flex; justify-content: space-between; align-items: center; }
     .status-dot { height: 8px; width: 8px; background-color: #bbb; border-radius: 50%; display: inline-block; margin-right: 4px; }
     .status-dot.active { background-color: #4caf50; }
 
+    .search-wrapper { position: relative; }
+    .suggestions-list { position: absolute; top: 100%; left: 0; right: 0; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 6px; max-height: 200px; overflow-y: auto; z-index: 100; box-shadow: 0 4px 10px rgba(0,0,0,0.15); display: none; }
+    .suggestion-item { padding: 10px 12px; cursor: pointer; border-bottom: 1px solid var(--border-color); font-size: 0.9rem; display: flex; justify-content: space-between; }
+    .suggestion-item:last-child { border-bottom: none; }
+    .suggestion-item:hover { background: var(--preview-bg); }
+
     .yf-price-box { display: flex; align-items: baseline; gap: 8px; margin-top: 6px; }
     .yf-icon-up { background: #1e88e5; color: white; border-radius: 4px; padding: 2px 6px; font-weight: bold; font-size: 0.85rem; }
     .yf-icon-down { background: #e53935; color: white; border-radius: 4px; padding: 2px 6px; font-weight: bold; font-size: 0.85rem; }
-    .yf-price-val { font-size: 1.4rem; font-weight: bold; color: #111; letter-spacing: -0.5px; }
+    .yf-price-val { font-size: 1.4rem; font-weight: bold; color: var(--text-color); letter-spacing: -0.5px; }
     .yf-change-up { color: #1e88e5; font-weight: bold; font-size: 0.85rem; line-height: 1.2; }
     .yf-change-down { color: #e53935; font-weight: bold; font-size: 0.85rem; line-height: 1.2; }
 
-    .stock-info-preview { background: #eef4ff; border: 1px solid #cce0ff; padding: 12px; border-radius: 8px; margin-top: 10px; }
+    .stock-info-preview { background: var(--preview-bg); border: 1px solid var(--preview-border); padding: 12px; border-radius: 8px; margin-top: 10px; }
     .stock-title { font-weight: bold; font-size: 1rem; color: #007aff; }
 
-    .condition-box { background: #f9fafb; border: 1px solid #e5e7eb; padding: 12px; border-radius: 8px; margin-top: 12px; }
+    .condition-box { background: var(--bg-color); border: 1px solid var(--border-color); padding: 12px; border-radius: 8px; margin-top: 12px; }
     .submit-btn { width: 100%; padding: 12px; background: #007aff; color: white; border: none; border-radius: 6px; font-size: 1rem; font-weight: bold; margin-top: 14px; cursor: pointer; }
     .submit-btn:disabled { background: #ccc; cursor: not-allowed; }
     .notify-btn { width: 100%; padding: 10px; background: #34c759; color: white; border: none; border-radius: 6px; font-size: 0.9rem; font-weight: bold; margin-bottom: 12px; cursor: pointer; }
@@ -35,22 +65,42 @@
     .refresh-btn:disabled { background: #ccc; cursor: not-allowed; }
 
     .list-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #007aff; padding-bottom: 6px; margin-bottom: 12px; }
-    .item { padding: 12px; border-radius: 8px; position: relative; margin-bottom: 8px; background: #fff; border: 1px solid #e5e7eb; }
-    .item-header { display: flex; justify-content: space-between; align-items: center; }
-    .item-title { font-size: 1.05rem; font-weight: bold; color: #111; }
-    .condition-tag { font-size: 0.75rem; color: #555; background: #eef4ff; padding: 3px 6px; border-radius: 4px; display: inline-block; margin-right: 4px; margin-top: 6px; }
+    .sort-bar { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; font-size: 0.8rem; }
     
-    .yf-link-btn { display: inline-flex; align-items: center; gap: 4px; background: #ff0033; color: white; text-decoration: none; font-size: 0.75rem; font-weight: bold; padding: 4px 8px; border-radius: 12px; }
+    .item { padding: 12px; border-radius: 8px; position: relative; margin-bottom: 8px; background: var(--card-bg); border: 1px solid var(--border-color); }
+    .item.favorite { border-left: 5px solid #ffcc00; }
+    .item-header { display: flex; justify-content: space-between; align-items: center; }
+    .item-title { font-size: 1.05rem; font-weight: bold; color: var(--text-color); display: flex; align-items: center; gap: 6px; }
+    .star-btn { background: none; border: none; font-size: 1.2rem; cursor: pointer; padding: 0; color: #ccc; }
+    .star-btn.active { color: #ffcc00; }
+
+    .progress-container { margin-top: 8px; background: var(--border-color); border-radius: 4px; height: 6px; width: 100%; overflow: hidden; position: relative; }
+    .progress-bar { height: 100%; background: #007aff; width: 0%; transition: width 0.3s; }
+    .progress-text { font-size: 0.7rem; color: var(--sub-text); margin-top: 2px; text-align: right; }
+
+    .memo-tag { font-size: 0.75rem; color: var(--sub-text); background: var(--bg-color); padding: 6px 8px; border-radius: 4px; margin-top: 8px; border: 1px dashed var(--border-color); white-space: pre-wrap; }
+
+    .link-group { display: flex; gap: 6px; }
+    .yf-link-btn { display: inline-flex; align-items: center; gap: 4px; background: #ff0033; color: white; text-decoration: none; font-size: 0.75rem; font-weight: bold; padding: 3px 6px; border-radius: 12px; }
+    .bbs-link-btn { display: inline-flex; align-items: center; gap: 4px; background: #ff9500; color: white; text-decoration: none; font-size: 0.75rem; font-weight: bold; padding: 3px 6px; border-radius: 12px; }
+    
+    .condition-tag { font-size: 0.75rem; color: var(--sub-text); background: var(--preview-bg); padding: 3px 6px; border-radius: 4px; display: inline-block; margin-right: 4px; margin-top: 6px; }
     .btn-group { display: flex; gap: 6px; margin-top: 10px; }
     .mini-btn { padding: 6px 12px; font-size: 0.75rem; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
-    .icon-btn { padding: 6px 10px; font-size: 0.9rem; background: #e0e0e0; border: none; border-radius: 4px; cursor: pointer; }
-    .edit-btn { background: #e0e0e0; color: #333; }
+    .icon-btn { padding: 6px 10px; font-size: 0.9rem; background: var(--border-color); border: none; border-radius: 4px; cursor: pointer; color: var(--text-color); }
+    .edit-btn { background: var(--border-color); color: var(--text-color); }
     .delete-btn { background: #ff3b30; color: white; }
 
-    .footer { text-align: center; padding: 16px 0 24px; color: #888; font-size: 0.75rem; }
+    .dark-toggle-btn { background: none; border: 1px solid var(--border-color); padding: 4px 8px; border-radius: 12px; font-size: 0.75rem; cursor: pointer; color: var(--text-color); }
+    .footer { text-align: center; padding: 16px 0 24px; color: var(--sub-text); font-size: 0.75rem; }
   </style>
 </head>
 <body>
+
+  <div class="header-bar">
+    <h2 style="font-size: 1.2rem;">📈 株価アラート PWA</h2>
+    <button class="dark-toggle-btn" onclick="toggleDarkMode()">🌙 ダークモード</button>
+  </div>
 
   <div class="status-bar">
     <div class="status-row">
@@ -69,8 +119,11 @@
       <h2 id="formTitle">銘柄の登録</h2>
     </div>
     
-    <label for="stockCodeInput">4桁の銘柄コードを入力</label>
-    <input type="number" id="stockCodeInput" placeholder="例: 7261, 9432" oninput="onCodeInput()">
+    <label for="stockSearchInput">銘柄コード・企業名・キーワード検索</label>
+    <div class="search-wrapper">
+      <input type="text" id="stockSearchInput" placeholder="例: 7261, トヨタ, 半導体" oninput="onSearchInput()">
+      <div id="suggestionsList" class="suggestions-list"></div>
+    </div>
 
     <div id="stockInfoPreview" class="stock-info-preview" style="display: none;">
       <div id="previewName" class="stock-title">銘柄名を取得中...</div>
@@ -78,15 +131,18 @@
     </div>
 
     <div class="condition-box">
-      <div style="font-weight: bold; font-size: 0.85rem; color: #333;">アラート通知条件</div>
+      <div style="font-weight: bold; font-size: 0.85rem;">アラート通知条件＆メモ</div>
       <label for="targetPrice">① 指定指値（この円以下で通知）</label>
       <input type="number" id="targetPrice" placeholder="例: 1000">
 
       <label for="targetDropRate">② 値下がり率（前日比 -%以上で通知）</label>
       <input type="number" id="targetDropRate" placeholder="例: 3">
+
+      <label for="memoInput">③ メモ（買い増し理由など）</label>
+      <textarea id="memoInput" placeholder="例: PER10倍以下。決算発表後に確認"></textarea>
     </div>
 
-    <button id="submitBtn" class="submit-btn" onclick="addAlert()" disabled>銘柄コードを入力してください</button>
+    <button id="submitBtn" class="submit-btn" onclick="addAlert()" disabled>銘柄を選択または入力してください</button>
   </div>
 
   <div class="card">
@@ -94,11 +150,23 @@
       <h2>監視中のリスト</h2>
       <button id="refreshBtn" class="refresh-btn" onclick="manualRefresh()">🔄 一括更新</button>
     </div>
+
+    <div class="sort-bar">
+      <span>並び替え:</span>
+      <select id="sortSelect" onchange="renderList()">
+        <option value="created">登録順</option>
+        <option value="favorite">★ お気に入り優先</option>
+        <option value="drop">前日比（下落率が大きい順）</option>
+        <option value="rise">前日比（上昇率が大きい順）</option>
+        <option value="code">銘柄コード順</option>
+      </select>
+    </div>
+
     <div id="alertList"></div>
   </div>
 
   <footer class="footer">
-    株価アラート PWA ver 1.4.0 (Cloudflare Server)
+    株価アラート PWA ver 1.5.0 (Full Featured)
   </footer>
 
   <script>
@@ -108,14 +176,22 @@
     let editingIndex = null;
     let priceCache = {};
     let currentFetchedStock = null;
-    let inputTimer = null;
+    let searchTimer = null;
 
     window.onload = () => {
+      if (localStorage.getItem('dark_mode') === 'true') {
+        document.body.classList.add('dark-mode');
+      }
       updateLastOpenTime();
       checkMarketTimeAndMonitor();
       renderList();
       setInterval(checkMarketTimeAndMonitor, 30000);
     };
+
+    function toggleDarkMode() {
+      document.body.classList.toggle('dark-mode');
+      localStorage.setItem('dark_mode', document.body.classList.contains('dark-mode'));
+    }
 
     function updateLastOpenTime() {
       const lastTime = localStorage.getItem('last_open_time');
@@ -202,40 +278,103 @@
       }
     }
 
-    function onCodeInput() {
-      clearTimeout(inputTimer);
-      const code = document.getElementById('stockCodeInput').value.trim();
+    function onSearchInput() {
+      clearTimeout(searchTimer);
+      const query = document.getElementById('stockSearchInput').value.trim();
+      const sugList = document.getElementById('suggestionsList');
       const previewDiv = document.getElementById('stockInfoPreview');
       const submitBtn = document.getElementById('submitBtn');
 
-      if (code.length !== 4) {
+      if (!query) {
+        sugList.style.display = 'none';
         previewDiv.style.display = 'none';
         submitBtn.disabled = true;
-        submitBtn.innerText = '4桁の銘柄コードを入力してください';
+        submitBtn.innerText = '銘柄を選択または入力してください';
         currentFetchedStock = null;
         return;
       }
 
+      // 4桁数字の場合は直接取得
+      if (/^\d{4}$/.test(query)) {
+        sugList.style.display = 'none';
+        previewDiv.style.display = 'block';
+        document.getElementById('previewName').innerText = '銘柄情報を検索中...';
+        document.getElementById('previewPrice').innerHTML = '<div style="color:#888; font-size:0.85rem;">データ取得中...</div>';
+        
+        searchTimer = setTimeout(async () => {
+          const stockData = await fetchStockQuote(query);
+          if (stockData) {
+            setSelectedStock(stockData);
+          } else {
+            showFetchError();
+          }
+        }, 200);
+      } else {
+        // キーワード検索（候補リスト表示）
+        searchTimer = setTimeout(() => {
+          fetchSearchResults(query);
+        }, 300);
+      }
+    }
+
+    async function fetchSearchResults(query) {
+      const sugList = document.getElementById('suggestionsList');
+      try {
+        const res = await fetch(`https://suggest.finance.yahoo.co.jp/select?output=json&query=${encodeURIComponent(query)}`);
+        const data = await res.json();
+        const results = data.Result || [];
+
+        const filtered = results.filter(r => r.code && r.code.endsWith('.T'));
+
+        if (filtered.length > 0) {
+          sugList.innerHTML = filtered.map(item => {
+            const code = item.code.replace('.T', '');
+            return `<div class="suggestion-item" onclick="selectSuggestion('${code}')">
+                      <span><strong>${item.name}</strong></span>
+                      <span style="color:#888;">${code}</span>
+                    </div>`;
+          }).join('');
+          sugList.style.display = 'block';
+        } else {
+          sugList.style.display = 'none';
+        }
+      } catch (e) {
+        sugList.style.display = 'none';
+      }
+    }
+
+    async function selectSuggestion(code) {
+      document.getElementById('stockSearchInput').value = code;
+      document.getElementById('suggestionsList').style.display = 'none';
+      
+      const previewDiv = document.getElementById('stockInfoPreview');
       previewDiv.style.display = 'block';
       document.getElementById('previewName').innerText = '銘柄情報を検索中...';
-      document.getElementById('previewPrice').innerHTML = '<div style="color:#888; font-size:0.85rem;">データ取得中...</div>';
-      submitBtn.disabled = true;
 
-      inputTimer = setTimeout(async () => {
-        const stockData = await fetchStockQuote(code);
-        if (stockData) {
-          currentFetchedStock = stockData;
-          document.getElementById('previewName').innerText = `${stockData.name} (${stockData.code})`;
-          document.getElementById('previewPrice').innerHTML = createYfHTML(stockData);
-          submitBtn.disabled = false;
-          submitBtn.innerText = editingIndex !== null ? '変更を保存する' : 'アラートを追加する';
-        } else {
-          currentFetchedStock = null;
-          document.getElementById('previewName').innerText = '取得エラー';
-          document.getElementById('previewPrice').innerHTML = '<div style="color:#e53935; font-size:0.85rem;">※コードをご確認ください</div>';
-          submitBtn.innerText = '有効な銘柄コードを入力してください';
-        }
-      }, 150);
+      const stockData = await fetchStockQuote(code);
+      if (stockData) {
+        setSelectedStock(stockData);
+      } else {
+        showFetchError();
+      }
+    }
+
+    function setSelectedStock(stockData) {
+      currentFetchedStock = stockData;
+      document.getElementById('previewName').innerText = `${stockData.name} (${stockData.code})`;
+      document.getElementById('previewPrice').innerHTML = createYfHTML(stockData);
+      const submitBtn = document.getElementById('submitBtn');
+      submitBtn.disabled = false;
+      submitBtn.innerText = editingIndex !== null ? '変更を保存する' : 'アラートを追加する';
+    }
+
+    function showFetchError() {
+      currentFetchedStock = null;
+      document.getElementById('previewName').innerText = '取得エラー';
+      document.getElementById('previewPrice').innerHTML = '<div style="color:#e53935; font-size:0.85rem;">※コードをご確認ください</div>';
+      const submitBtn = document.getElementById('submitBtn');
+      submitBtn.disabled = true;
+      submitBtn.innerText = '有効な銘柄を入力してください';
     }
 
     function createYfHTML(quote) {
@@ -310,11 +449,20 @@
     function addAlert() {
       if (!currentFetchedStock) return;
 
+      // 重複チェック
+      const isExist = alerts.some((item, idx) => item.code === currentFetchedStock.code && idx !== editingIndex);
+      if (isExist) {
+        if (!confirm(`【${currentFetchedStock.name} (${currentFetchedStock.code})】は既にリストに存在します。\n本当に登録しますか？`)) {
+          return;
+        }
+      }
+
       const price = document.getElementById('targetPrice').value;
       const rate = document.getElementById('targetDropRate').value;
+      const memo = document.getElementById('memoInput').value;
 
-      if (!price && !rate) {
-        alert('少なくとも1つのアラート条件（指定指値 または 値下がり率）を入力してください。');
+      if (!price && !rate && !memo) {
+        alert('アラート条件（指値・値下がり率）またはメモを入力してください。');
         return;
       }
 
@@ -322,7 +470,9 @@
         name: currentFetchedStock.name, 
         code: currentFetchedStock.code, 
         price: price || null, 
-        rate: rate || null 
+        rate: rate || null,
+        memo: memo || '',
+        favorite: editingIndex !== null ? (alerts[editingIndex].favorite || false) : false
       };
 
       if (editingIndex !== null) {
@@ -339,15 +489,23 @@
     }
 
     function clearForm() {
-      document.getElementById('stockCodeInput').value = '';
+      document.getElementById('stockSearchInput').value = '';
       document.getElementById('targetPrice').value = '';
       document.getElementById('targetDropRate').value = '';
+      document.getElementById('memoInput').value = '';
       document.getElementById('stockInfoPreview').style.display = 'none';
+      document.getElementById('suggestionsList').style.display = 'none';
       
       const submitBtn = document.getElementById('submitBtn');
       submitBtn.disabled = true;
-      submitBtn.innerText = '4桁の銘柄コードを入力してください';
+      submitBtn.innerText = '銘柄を選択または入力してください';
       currentFetchedStock = null;
+    }
+
+    function toggleFavorite(index) {
+      alerts[index].favorite = !alerts[index].favorite;
+      saveToStorage();
+      renderList();
     }
 
     function renderList() {
@@ -357,32 +515,75 @@
         return;
       }
 
-      listDiv.innerHTML = alerts.map((item, index) => {
+      // ソート処理
+      const sortType = document.getElementById('sortSelect').value;
+      let sortedAlerts = alerts.map((item, index) => ({ item, originalIndex: index }));
+
+      sortedAlerts.sort((a, b) => {
+        if (sortType === 'favorite') {
+          return (b.item.favorite ? 1 : 0) - (a.item.favorite ? 1 : 0);
+        } else if (sortType === 'code') {
+          return a.item.code.localeCompare(b.item.code);
+        } else if (sortType === 'drop' || sortType === 'rise') {
+          const qA = priceCache[a.item.code];
+          const qB = priceCache[b.item.code];
+          const valA = (qA && !qA.error) ? qA.changePercent : 0;
+          const valB = (qB && !qB.error) ? qB.changePercent : 0;
+          return sortType === 'drop' ? valA - valB : valB - valA;
+        }
+        return a.originalIndex - b.originalIndex;
+      });
+
+      listDiv.innerHTML = sortedAlerts.map(({ item, originalIndex }) => {
         const yfUrl = `https://finance.yahoo.co.jp/quote/${item.code}.T`;
+        const bbsUrl = `https://finance.yahoo.co.jp/quote/${item.code}.T/bbs`;
         const quote = priceCache[item.code];
         
         let priceDisplay = '<div style="font-size:0.8rem; color:#888; margin-top:4px;">株価を取得中...</div>';
+        let progressBar = '';
+
         if (quote && !quote.error) {
           priceDisplay = createYfHTML(quote);
+
+          // 到達率ゲージ計算
+          if (item.price) {
+            const target = parseFloat(item.price);
+            const current = quote.price;
+            let percent = Math.min(Math.max((target / current) * 100, 0), 100);
+            progressBar = `
+              <div class="progress-container">
+                <div class="progress-bar" style="width: ${percent}%;"></div>
+              </div>
+              <div class="progress-text">指値への到達期待度: ${percent.toFixed(1)}%</div>
+            `;
+          }
         } else if (quote && quote.error) {
           priceDisplay = '<div style="font-size:0.8rem; color:#e53935; margin-top:4px;">※現在値の取得失敗</div>';
         }
 
         return `
-          <div class="item">
+          <div class="item ${item.favorite ? 'favorite' : ''}">
             <div class="item-header">
-              <span class="item-title">${item.name} (${item.code})</span>
-              <a href="${yfUrl}" target="_blank" class="yf-link-btn">Yahoo! ↗</a>
+              <span class="item-title">
+                <button class="star-btn ${item.favorite ? 'active' : ''}" onclick="toggleFavorite(${originalIndex})">★</button>
+                ${item.name} (${item.code})
+              </span>
+              <div class="link-group">
+                <a href="${yfUrl}" target="_blank" class="yf-link-btn">Yahoo! ↗</a>
+                <a href="${bbsUrl}" target="_blank" class="bbs-link-btn">掲示板 ↗</a>
+              </div>
             </div>
             ${priceDisplay}
+            ${progressBar}
             <div>
               ${item.price ? `<span class="condition-tag">指値: ${item.price}円以下</span>` : ''}
               ${item.rate ? `<span class="condition-tag">下落: -${item.rate}%以上</span>` : ''}
             </div>
+            ${item.memo ? `<div class="memo-tag">📝 ${item.memo}</div>` : ''}
             <div class="btn-group">
-              <button class="icon-btn" onclick="refreshSinglePrice(${index}, '${item.code}')" title="株価を再取得">🔄</button>
-              <button class="mini-btn edit-btn" onclick="editAlert(${index})">編集</button>
-              <button class="mini-btn delete-btn" onclick="deleteAlert(${index})">削除</button>
+              <button class="icon-btn" onclick="refreshSinglePrice(${originalIndex}, '${item.code}')" title="株価を再取得">🔄</button>
+              <button class="mini-btn edit-btn" onclick="editAlert(${originalIndex})">編集</button>
+              <button class="mini-btn delete-btn" onclick="deleteAlert(${originalIndex})">削除</button>
             </div>
           </div>
         `;
@@ -391,13 +592,14 @@
 
     function editAlert(index) {
       const item = alerts[index];
-      document.getElementById('stockCodeInput').value = item.code;
+      document.getElementById('stockSearchInput').value = item.code;
       document.getElementById('targetPrice').value = item.price || '';
       document.getElementById('targetDropRate').value = item.rate || '';
+      document.getElementById('memoInput').value = item.memo || '';
       
       editingIndex = index;
       document.getElementById('formTitle').innerText = 'アラートの編集';
-      onCodeInput();
+      onSearchInput();
     }
 
     function deleteAlert(index) {
