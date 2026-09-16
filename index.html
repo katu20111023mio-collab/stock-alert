@@ -158,7 +158,7 @@
   <div class="header-bar">
     <div class="header-title-box">
       <h2 style="font-size: 1.1rem;">📈 株価アラート</h2>
-      <span class="version-tag">ver 2.6.0</span>
+      <span class="version-tag">ver 2.6.1</span>
     </div>
     <button class="dark-toggle-btn" onclick="toggleDarkMode()">🌙 ダークモード</button>
   </div>
@@ -324,12 +324,12 @@
   <script>
     const MY_SERVER_URL = "https://autumn-shape-d4ac.sub-katu20111023mio.workers.dev";
 
+    // 正しい日本語名マッピング
     const NAME_FIX_MAP = {
       "7203": "トヨタ自動車",
       "9432": "NTT",
       "9434": "ソフトバンク",
       "4755": "楽天グループ",
-      "7775": "大建メディカル",
       "7261": "マツダ",
       "9984": "ソフトバンクグループ",
       "8306": "三菱UFJ",
@@ -337,14 +337,12 @@
       "8411": "みずほFG",
       "6758": "ソニーグループ",
       "7974": "任天堂",
-      "7601": "ポッカサッポロ（ポプラ）" // あるいは ポプラ など
+      "7601": "ポプラ"
     };
 
-    // 追加で手動翻訳用の簡易辞書や自動推測ルール
     function getManualTranslation(code, rawName) {
       if (NAME_FIX_MAP[code]) return NAME_FIX_MAP[code];
       if (code === "7601") return "ポプラ";
-      // もし英語名っぽければ「CO LTD」などを省く処理
       let cleaned = rawName.replace(/CO\s*LTD/gi, "").replace(/INC/gi, "").replace(/CORP/gi, "").trim();
       return cleaned || rawName;
     }
@@ -536,8 +534,6 @@
           currentFetchedStock = stockData;
           nameLine.innerText = `${stockData.name} (${stockData.code})`;
           priceLine.innerHTML = createYfHTML(stockData);
-          
-          // 英語名っぽい場合や辞書にない場合に翻訳ボタンを表示
           transBtn.style.display = 'inline-flex';
 
           const submitBtn = document.getElementById('submitBtn');
@@ -554,7 +550,6 @@
       }, 150);
     }
 
-    // 🌐 翻訳ボタンが押された時の処理
     function translateStockName() {
       if (!currentFetchedStock) return;
       const betterName = getManualTranslation(currentFetchedStock.code, currentFetchedStock.rawName);
@@ -599,7 +594,6 @@
       renderList();
       const quote = await fetchStockQuote(code);
       if (quote) {
-        // 既存の登録銘柄名が英語のままなら自動適用を試みる
         if (alerts[index].name === quote.rawName && NAME_FIX_MAP[code]) {
           alerts[index].name = NAME_FIX_MAP[code];
         }
