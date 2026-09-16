@@ -10,12 +10,7 @@
     h2 { margin: 0; font-size: 1.1rem; color: #1a1a1a; }
     label { font-size: 0.8rem; color: #666; display: block; margin-top: 10px; font-weight: bold; }
     
-    .input-wrapper { position: relative; }
     input { width: 100%; padding: 10px; margin-top: 4px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-size: 1rem; -webkit-user-select: text; user-select: text; }
-    
-    .suggest-list { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 2px solid #007aff; border-radius: 0 0 8px 8px; box-shadow: 0 6px 16px rgba(0,0,0,0.2); z-index: 999; max-height: 220px; overflow-y: auto; display: none; }
-    .suggest-item { padding: 12px; font-size: 0.95rem; cursor: pointer; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
-    .suggest-item:active { background: #007aff; color: white; }
     
     .status-bar { font-size: 0.75rem; color: #555; background: #eef4ff; padding: 10px 12px; border-radius: 6px; margin-bottom: 12px; }
     .status-row { display: flex; justify-content: space-between; align-items: center; }
@@ -70,11 +65,11 @@
       <h2 id="formTitle">銘柄の登録</h2>
     </div>
     
-    <label for="stockInput">銘柄コードまたは名前</label>
-    <div class="input-wrapper">
-      <input type="text" id="stockInput" placeholder="例: マツダ, 7261, KADOKAWA" oninput="debounceSearch()" autocomplete="off">
-      <div id="suggestList" class="suggest-list"></div>
-    </div>
+    <label for="stockNameInput">銘柄名またはメモ</label>
+    <input type="text" id="stockNameInput" placeholder="例: マツダ, トヨタ">
+
+    <label for="stockCodeInput">4桁の銘柄コード</label>
+    <input type="number" id="stockCodeInput" placeholder="例: 7261" oninput="updatePricePreview()">
 
     <div id="pricePreview" style="display: none; margin-top: 10px; background: #f8fafc; padding: 10px; border-radius: 8px;">
       <div style="font-size: 0.75rem; color: #888;">現在株価 (参考)</div>
@@ -102,26 +97,20 @@
   </div>
 
   <footer class="footer">
-    株価アラート PWA ver 1.1.2
+    株価アラート PWA ver 1.2.0
   </footer>
 
   <script>
     let alerts = JSON.parse(localStorage.getItem('stock_alerts') || '[]');
     let editingIndex = null;
     let priceCache = {};
-    let searchTimer = null;
+    let previewTimer = null;
 
     window.onload = () => {
       updateLastOpenTime();
       checkMarketTimeAndMonitor();
       renderList();
       setInterval(checkMarketTimeAndMonitor, 30000);
-      
-      document.addEventListener('click', (e) => {
-        if (!e.target.closest('.input-wrapper')) {
-          hideSuggest();
-        }
-      });
     };
 
     function updateLastOpenTime() {
@@ -179,95 +168,19 @@
       refreshAllPrices();
     }
 
-    function debounceSearch() {
-      clearTimeout(searchTimer);
-      searchTimer = setTimeout(searchStock, 200);
-    }
-
-    async function fetchWithCorsProxy(targetUrl) {
-      const proxies = [
-        `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`,
-        `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`
-      ];
-
-      for (let proxy of proxies) {
-        try {
-          const res = await fetch(proxy);
-          if (res.ok) {
-            return await res.json();
-          }
-        } catch (e) {
-          continue;
-        }
-      }
-      return null;
-    }
-
-    async function searchStock() {
-      const query = document.getElementById('stockInput').value.trim();
-      const suggestDiv = document.getElementById('suggestList');
-
-      if (!query) {
-        suggestDiv.style.display = 'none';
-        return;
-      }
-
-      suggestDiv.innerHTML = '<div style="padding:12px; font-size:0.85rem; color:#888;">検索中...</div>';
-      suggestDiv.style.display = 'block';
-
-      try {
-        const targetUrl = `https://query1.finance.yahoo.com/v1/finance/search?q=${encodeURIComponent(query)}&quotesCount=10&newsCount=0&lang=ja-JP&region=JP`;
-        const data = await fetchWithCorsProxy(targetUrl);
-
-        if (!data || !data.quotes) {
-          suggestDiv.innerHTML = '<div style="padding:12px; font-size:0.85rem; color:#e53935;">検索エラーが発生しました</div>';
-          return;
-        }
-
-        const matches = data.quotes.filter(q => q.symbol && q.symbol.endsWith('.T'));
-
-        if (matches.length === 0) {
-          suggestDiv.innerHTML = '<div style="padding:12px; font-size:0.85rem; color:#999;">該当する銘柄が見つかりません</div>';
-          return;
-        }
-
-        suggestDiv.innerHTML = matches.map(item => {
-          const code = item.symbol.replace('.T', '');
-          const name = item.longname || item.shortname || item.dispName || code;
-          return `
-            <div class="suggest-item" onmousedown="selectSuggest('${code}', '${name.replace(/'/g, "\\'")}')">
-              <span style="font-weight:bold; color:#111;">${name}</span>
-              <span style="color:#007aff; font-weight:bold;">${code}</span>
-            </div>
-          `;
-        }).join('');
-      } catch (e) {
-        suggestDiv.innerHTML = '<div style="padding:12px; font-size:0.85rem; color:#e53935;">検索エラーが発生しました</div>';
-      }
-    }
-
-    function hideSuggest() {
-      document.getElementById('suggestList').style.display = 'none';
-    }
-
-    function selectSuggest(code, name) {
-      const inputEl = document.getElementById('stockInput');
-      inputEl.value = `${name} (${code})`;
-      inputEl.dataset.code = code;
-      inputEl.dataset.name = name;
-      hideSuggest();
-      updatePricePreview();
-    }
-
     async function fetchStockQuote(code) {
       if (!code || !/^\d{4}$/.test(code)) return null;
 
-      try {
-        const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${code}.T?interval=1d`;
-        const data = await fetchWithCorsProxy(targetUrl);
+      const targetUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${code}.T?interval=1d`;
+      const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
 
-        if (!data || !data.chart || !data.chart.result || !data.chart.result[0]) return null;
+      try {
+        const res = await fetch(proxyUrl);
+        if (!res.ok) return null;
         
+        const data = await res.json();
+        if (!data.chart || !data.chart.result || !data.chart.result[0]) return null;
+
         const result = data.chart.result[0];
         const meta = result.meta;
         const price = meta.regularMarketPrice;
@@ -275,39 +188,34 @@
         const changeNum = parseFloat((price - prevClose).toFixed(2));
         const changePercent = parseFloat(((changeNum / prevClose) * 100).toFixed(2));
 
-        return {
-          price: price,
-          changeNum: changeNum,
-          changePercent: changePercent
-        };
+        return { price, changeNum, changePercent };
       } catch (e) {
         return null;
       }
     }
 
-    async function updatePricePreview() {
-      const inputEl = document.getElementById('stockInput');
-      const code = inputEl.dataset.code;
+    function updatePricePreview() {
+      clearTimeout(previewTimer);
+      const code = document.getElementById('stockCodeInput').value.trim();
       const previewDiv = document.getElementById('pricePreview');
       const contentDiv = document.getElementById('previewContent');
 
-      if (!inputEl.value.trim()) { previewDiv.style.display = 'none'; return; }
-
-      previewDiv.style.display = 'block';
-
-      if (!code) {
-        contentDiv.innerHTML = '<div style="color:#e53935; font-size:0.85rem;">※候補リストから目的の銘柄をタップして選択してください。</div>';
+      if (code.length !== 4) {
+        previewDiv.style.display = 'none';
         return;
       }
 
+      previewDiv.style.display = 'block';
       contentDiv.innerHTML = '<div style="color:#888; font-size:0.85rem;">現在値を取得中...</div>';
 
-      const quote = await fetchStockQuote(code);
-      if (quote) {
-        contentDiv.innerHTML = createYfHTML(quote);
-      } else {
-        contentDiv.innerHTML = '<div style="color:#999; font-size:0.85rem;">※現在値の取得失敗</div>';
-      }
+      previewTimer = setTimeout(async () => {
+        const quote = await fetchStockQuote(code);
+        if (quote) {
+          contentDiv.innerHTML = createYfHTML(quote);
+        } else {
+          contentDiv.innerHTML = '<div style="color:#e53935; font-size:0.85rem;">※現在値の取得に失敗しました（コードをご確認ください）</div>';
+        }
+      }, 400);
     }
 
     function createYfHTML(quote) {
@@ -354,15 +262,18 @@
     }
 
     function addAlert() {
-      const inputEl = document.getElementById('stockInput');
+      const name = document.getElementById('stockNameInput').value.trim();
+      const code = document.getElementById('stockCodeInput').value.trim();
       const price = document.getElementById('targetPrice').value;
       const rate = document.getElementById('targetDropRate').value;
 
-      const code = inputEl.dataset.code;
-      const name = inputEl.dataset.name;
+      if (!name || !code) {
+        alert('「銘柄名」と「4桁の銘柄コード」の両方を入力してください。');
+        return;
+      }
 
-      if (!code || !name) {
-        alert('検索結果の青い一覧から、登録したい銘柄をタップして選択してください。');
+      if (code.length !== 4) {
+        alert('銘柄コードは4桁の数字で入力してください。');
         return;
       }
 
@@ -388,14 +299,11 @@
     }
 
     function clearForm() {
-      const inputEl = document.getElementById('stockInput');
-      inputEl.value = '';
-      delete inputEl.dataset.code;
-      delete inputEl.dataset.name;
+      document.getElementById('stockNameInput').value = '';
+      document.getElementById('stockCodeInput').value = '';
       document.getElementById('targetPrice').value = '';
       document.getElementById('targetDropRate').value = '';
       document.getElementById('pricePreview').style.display = 'none';
-      hideSuggest();
     }
 
     function renderList() {
@@ -439,11 +347,8 @@
 
     function editAlert(index) {
       const item = alerts[index];
-      const inputEl = document.getElementById('stockInput');
-      inputEl.value = `${item.name} (${item.code})`;
-      inputEl.dataset.code = item.code;
-      inputEl.dataset.name = item.name;
-      
+      document.getElementById('stockNameInput').value = item.name;
+      document.getElementById('stockCodeInput').value = item.code;
       document.getElementById('targetPrice').value = item.price || '';
       document.getElementById('targetDropRate').value = item.rate || '';
       
