@@ -41,12 +41,6 @@
     .status-dot { height: 8px; width: 8px; background-color: #bbb; border-radius: 50%; display: inline-block; margin-right: 4px; }
     .status-dot.active { background-color: #4caf50; }
 
-    .search-wrapper { position: relative; }
-    .suggestions-list { position: absolute; top: 100%; left: 0; right: 0; background: var(--card-bg); border: 2px solid #007aff; border-radius: 6px; max-height: 220px; overflow-y: auto; z-index: 1000; box-shadow: 0 6px 16px rgba(0,0,0,0.2); display: none; margin-top: 4px; }
-    .suggestion-item { padding: 12px; cursor: pointer; border-bottom: 1px solid var(--border-color); font-size: 0.95rem; display: flex; justify-content: space-between; align-items: center; }
-    .suggestion-item:last-child { border-bottom: none; }
-    .suggestion-item:active { background: var(--preview-bg); }
-
     .yf-price-box { display: flex; align-items: baseline; gap: 8px; margin-top: 6px; }
     .yf-icon-up { background: #1e88e5; color: white; border-radius: 4px; padding: 2px 6px; font-weight: bold; font-size: 0.85rem; }
     .yf-icon-down { background: #e53935; color: white; border-radius: 4px; padding: 2px 6px; font-weight: bold; font-size: 0.85rem; }
@@ -119,11 +113,8 @@
       <h2 id="formTitle">銘柄の登録</h2>
     </div>
     
-    <label for="stockSearchInput">銘柄コード・企業名・キーワード検索</label>
-    <div class="search-wrapper">
-      <input type="text" id="stockSearchInput" placeholder="例: 7261, トヨタ, NTT" oninput="onSearchInput()">
-      <div id="suggestionsList" class="suggestions-list"></div>
-    </div>
+    <label for="stockSearchInput">銘柄コード（4桁数字）</label>
+    <input type="number" id="stockSearchInput" placeholder="例: 7203, 9432" oninput="onCodeInput()">
 
     <div id="stockInfoPreview" class="stock-info-preview" style="display: none;">
       <div id="previewName" class="stock-title">銘柄名を取得中...</div>
@@ -142,7 +133,7 @@
       <textarea id="memoInput" placeholder="例: PER10倍以下。決算発表後に確認"></textarea>
     </div>
 
-    <button id="submitBtn" class="submit-btn" onclick="addAlert()" disabled>候補を選択してください</button>
+    <button id="submitBtn" class="submit-btn" onclick="addAlert()" disabled>4桁の銘柄コードを入力してください</button>
   </div>
 
   <div class="card">
@@ -166,7 +157,7 @@
   </div>
 
   <footer class="footer">
-    株価アラート PWA ver 1.5.1
+    株価アラート PWA ver 1.5.2 (Simple & Stable)
   </footer>
 
   <script>
@@ -257,90 +248,43 @@
       }
     }
 
-    function onSearchInput() {
+    function onCodeInput() {
       clearTimeout(searchTimer);
-      const query = document.getElementById('stockSearchInput').value.trim();
-      const sugList = document.getElementById('suggestionsList');
+      const code = document.getElementById('stockSearchInput').value.trim();
       const previewDiv = document.getElementById('stockInfoPreview');
 
-      if (!query) {
-        sugList.style.display = 'none';
+      if (code.length !== 4) {
         previewDiv.style.display = 'none';
         resetSubmitBtn();
         return;
       }
 
-      searchTimer = setTimeout(() => {
-        if (/^\d{4}$/.test(query)) {
-          // 4桁コード入力時も候補として表示
-          selectSuggestion(query);
-        } else {
-          fetchSearchResults(query);
-        }
-      }, 150);
-    }
-
-    async function fetchSearchResults(query) {
-      const sugList = document.getElementById('suggestionsList');
-      try {
-        // Worker経由でYahoo!サジェストを取得
-        const res = await fetch(`${MY_SERVER_URL}?query=${encodeURIComponent(query)}`);
-        if (!res.ok) throw new Error();
-        const data = await res.json();
-        const results = data.Result || [];
-
-        // 日本株 (.T) のみを抽出
-        const filtered = results.filter(r => r.code && r.code.endsWith('.T'));
-
-        if (filtered.length > 0) {
-          sugList.innerHTML = filtered.map(item => {
-            const code = item.code.replace('.T', '');
-            return `<div class="suggestion-item" onclick="selectSuggestion('${code}')">
-                      <div>
-                        <strong>${item.name}</strong>
-                        <div style="font-size:0.75rem; color:#888;">${item.category || ''}</div>
-                      </div>
-                      <span style="color:#007aff; font-weight:bold;">${code}</span>
-                    </div>`;
-          }).join('');
-          sugList.style.display = 'block';
-        } else {
-          sugList.style.display = 'none';
-        }
-      } catch (e) {
-        sugList.style.display = 'none';
-      }
-    }
-
-    async function selectSuggestion(code) {
-      document.getElementById('stockSearchInput').value = code;
-      document.getElementById('suggestionsList').style.display = 'none';
-      
-      const previewDiv = document.getElementById('stockInfoPreview');
       previewDiv.style.display = 'block';
       document.getElementById('previewName').innerText = '株価情報を取得中...';
       document.getElementById('previewPrice').innerHTML = '';
 
-      const stockData = await fetchStockQuote(code);
-      if (stockData) {
-        currentFetchedStock = stockData;
-        document.getElementById('previewName').innerText = `${stockData.name} (${stockData.code})`;
-        document.getElementById('previewPrice').innerHTML = createYfHTML(stockData);
-        const submitBtn = document.getElementById('submitBtn');
-        submitBtn.disabled = false;
-        submitBtn.innerText = editingIndex !== null ? '変更を保存する' : 'アラートを追加する';
-      } else {
-        currentFetchedStock = null;
-        document.getElementById('previewName').innerText = '取得エラー';
-        document.getElementById('previewPrice').innerHTML = '<div style="color:#e53935;">※銘柄データが見つかりませんでした</div>';
-        resetSubmitBtn();
-      }
+      searchTimer = setTimeout(async () => {
+        const stockData = await fetchStockQuote(code);
+        if (stockData) {
+          currentFetchedStock = stockData;
+          document.getElementById('previewName').innerText = `${stockData.name} (${stockData.code})`;
+          document.getElementById('previewPrice').innerHTML = createYfHTML(stockData);
+          const submitBtn = document.getElementById('submitBtn');
+          submitBtn.disabled = false;
+          submitBtn.innerText = editingIndex !== null ? '変更を保存する' : 'アラートを追加する';
+        } else {
+          currentFetchedStock = null;
+          document.getElementById('previewName').innerText = '取得エラー';
+          document.getElementById('previewPrice').innerHTML = '<div style="color:#e53935;">※正しい4桁の銘柄コードを入力してください</div>';
+          resetSubmitBtn();
+        }
+      }, 150);
     }
 
     function resetSubmitBtn() {
       const submitBtn = document.getElementById('submitBtn');
       submitBtn.disabled = true;
-      submitBtn.innerText = '候補を選択してください';
+      submitBtn.innerText = '4桁の銘柄コードを入力してください';
       currentFetchedStock = null;
     }
 
@@ -456,7 +400,6 @@
       document.getElementById('targetDropRate').value = '';
       document.getElementById('memoInput').value = '';
       document.getElementById('stockInfoPreview').style.display = 'none';
-      document.getElementById('suggestionsList').style.display = 'none';
       resetSubmitBtn();
     }
 
@@ -551,7 +494,7 @@
       document.getElementById('memoInput').value = item.memo || '';
       editingIndex = index;
       document.getElementById('formTitle').innerText = 'アラートの編集';
-      selectSuggestion(item.code);
+      onCodeInput();
     }
 
     function deleteAlert(index) {
