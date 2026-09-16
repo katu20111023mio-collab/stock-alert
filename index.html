@@ -36,7 +36,8 @@
     h2 { margin: 0; font-size: 1.1rem; color: var(--text-color); }
     label { font-size: 0.8rem; color: var(--sub-text); display: block; margin-top: 10px; font-weight: bold; }
     
-    input, select, textarea { width: 100%; padding: 10px; margin-top: 4px; border: 1px solid var(--border-color); border-radius: 6px; box-sizing: border-box; font-size: 1rem; background: var(--input-bg); color: var(--text-color); -webkit-user-select: text; user-select: text; }
+    /* iOSの自動ズーム防止のため、font-sizeを16px(1rem)に固定 */
+    input, select, textarea { width: 100%; padding: 10px; margin-top: 4px; border: 1px solid var(--border-color); border-radius: 6px; box-sizing: border-box; font-size: 16px; background: var(--input-bg); color: var(--text-color); -webkit-user-select: text; user-select: text; }
     textarea { resize: vertical; height: 60px; font-family: inherit; }
 
     .accordion-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; border-bottom: 2px solid #007aff; padding-bottom: 6px; }
@@ -68,7 +69,9 @@
     .list-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #007aff; padding-bottom: 6px; margin-bottom: 12px; }
     .sort-filter-box { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; font-size: 0.8rem; background: var(--bg-color); padding: 8px; border-radius: 8px; border: 1px solid var(--border-color); }
     .filter-row { display: flex; align-items: center; gap: 6px; }
-    .filter-row input { padding: 4px 6px; font-size: 0.8rem; margin: 0; }
+    
+    /* 絞り込み入力欄の文字サイズも16pxに揃えて自動ズームをブロック */
+    .filter-row input { padding: 4px 6px; font-size: 16px; margin: 0; }
 
     .item { padding: 12px; border-radius: 8px; position: relative; margin-bottom: 8px; background: var(--card-bg); border: 1px solid var(--border-color); }
     .item.favorite { border-left: 5px solid #ffcc00; }
@@ -109,7 +112,7 @@
   <div class="header-bar">
     <div class="header-title-box">
       <h2 style="font-size: 1.2rem;">📈 株価アラート</h2>
-      <span class="version-tag">ver 1.7.1 (26/09)</span>
+      <span class="version-tag">ver 1.7.3 (26/09)</span>
     </div>
     <button class="dark-toggle-btn" onclick="toggleDarkMode()">🌙 ダークモード</button>
   </div>
@@ -189,11 +192,18 @@
   <script>
     const MY_SERVER_URL = "https://autumn-shape-d4ac.sub-katu20111023mio.workers.dev";
 
+    // 主要銘柄の日本語名固定マップ
     const NAME_FIX_MAP = {
       "7203": "トヨタ自動車",
       "9432": "NTT",
+      "9434": "ソフトバンク",
       "7261": "マツダ",
-      "9984": "ソフトバンクグループ"
+      "9984": "ソフトバンクグループ",
+      "8306": "三菱UFJ",
+      "8316": "三井住友FG",
+      "8411": "みずほFG",
+      "6758": "ソニーグループ",
+      "7974": "任天堂"
     };
 
     let alerts = JSON.parse(localStorage.getItem('stock_alerts') || '[]');
@@ -375,10 +385,12 @@
       const quote = await fetchStockQuote(code);
       if (quote) {
         priceCache[code] = quote;
-        if (alerts[index].name !== quote.name) {
+        if (NAME_FIX_MAP[code]) {
+          alerts[index].name = NAME_FIX_MAP[code];
+        } else if (alerts[index].name !== quote.name) {
           alerts[index].name = quote.name;
-          saveToStorage();
         }
+        saveToStorage();
         checkAndNotify(alerts[index], quote);
       } else {
         priceCache[code] = { error: true };
@@ -392,10 +404,12 @@
         const quote = await fetchStockQuote(item.code);
         if (quote) {
           priceCache[item.code] = quote;
-          if (item.name !== quote.name) {
+          if (NAME_FIX_MAP[item.code]) {
+            item.name = NAME_FIX_MAP[item.code];
+          } else if (item.name !== quote.name) {
             item.name = quote.name;
-            saveToStorage();
           }
+          saveToStorage();
           checkAndNotify(item, quote);
         } else {
           priceCache[item.code] = { error: true };
@@ -439,7 +453,7 @@
       }
 
       const alertData = { 
-        name: currentFetchedStock.name, 
+        name: NAME_FIX_MAP[currentFetchedStock.code] || currentFetchedStock.name, 
         code: currentFetchedStock.code, 
         price: price || null, 
         rate: rate || null,
