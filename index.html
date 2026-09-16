@@ -45,10 +45,10 @@
     .status-dot { height: 8px; width: 8px; background-color: #bbb; border-radius: 50%; display: inline-block; margin-right: 4px; }
     .status-dot.active { background-color: #4caf50; }
 
-    .yf-price-box { display: flex; align-items: baseline; gap: 8px; margin-top: 6px; }
+    .yf-price-box { display: flex; align-items: baseline; gap: 8px; margin-top: 4px; }
     .yf-icon-up { background: #1e88e5; color: white; border-radius: 4px; padding: 2px 6px; font-weight: bold; font-size: 0.85rem; }
     .yf-icon-down { background: #e53935; color: white; border-radius: 4px; padding: 2px 6px; font-weight: bold; font-size: 0.85rem; }
-    .yf-price-val { font-size: 1.4rem; font-weight: bold; color: var(--text-color); letter-spacing: -0.5px; }
+    .yf-price-val { font-size: 1.3rem; font-weight: bold; color: var(--text-color); letter-spacing: -0.5px; }
     .yf-change-up { color: #1e88e5; font-weight: bold; font-size: 0.85rem; line-height: 1.2; }
     .yf-change-down { color: #e53935; font-weight: bold; font-size: 0.85rem; line-height: 1.2; }
 
@@ -63,37 +63,40 @@
     .refresh-btn:disabled { background: #ccc; cursor: not-allowed; }
 
     .list-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #007aff; padding-bottom: 6px; margin-bottom: 12px; }
-    .sort-bar { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; font-size: 0.8rem; }
-    
+    .sort-filter-box { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; font-size: 0.8rem; background: var(--bg-color); padding: 8px; border-radius: 8px; border: 1px solid var(--border-color); }
+    .filter-row { display: flex; align-items: center; gap: 6px; }
+    .filter-row input { padding: 4px 6px; font-size: 0.8rem; margin: 0; }
+
     .item { padding: 12px; border-radius: 8px; position: relative; margin-bottom: 8px; background: var(--card-bg); border: 1px solid var(--border-color); }
     .item.favorite { border-left: 5px solid #ffcc00; }
     .item.disabled { opacity: 0.6; background: var(--bg-color); }
     .item-header { display: flex; justify-content: space-between; align-items: center; }
-    .item-title { font-size: 1.05rem; font-weight: bold; color: var(--text-color); display: flex; align-items: center; gap: 6px; }
-    .star-btn { background: none; border: none; font-size: 1.2rem; cursor: pointer; padding: 0; color: #ccc; }
+    .item-title { font-size: 1rem; font-weight: bold; color: var(--text-color); display: flex; align-items: center; gap: 4px; }
+    .code-badge { font-size: 0.75rem; color: var(--sub-text); font-weight: normal; }
+
+    .star-btn, .gift-btn, .toggle-alert-btn { background: none; border: none; font-size: 1.1rem; cursor: pointer; padding: 0 2px; }
+    .star-btn { color: #ccc; }
     .star-btn.active { color: #ffcc00; }
+    .gift-btn { opacity: 0.3; filter: grayscale(100%); }
+    .gift-btn.active { opacity: 1; filter: grayscale(0%); }
 
-    .toggle-alert-btn { background: none; border: none; font-size: 1.1rem; cursor: pointer; padding: 0 4px; }
-
-    .progress-container { margin-top: 8px; background: var(--border-color); border-radius: 4px; height: 6px; width: 100%; overflow: hidden; position: relative; }
+    .progress-container { margin-top: 6px; background: var(--border-color); border-radius: 4px; height: 5px; width: 100%; overflow: hidden; position: relative; }
     .progress-bar { height: 100%; background: #007aff; width: 0%; transition: width 0.3s; }
-    .progress-text { font-size: 0.7rem; color: var(--sub-text); margin-top: 2px; text-align: right; }
+    .progress-text { font-size: 0.68rem; color: var(--sub-text); margin-top: 2px; text-align: right; }
 
-    .memo-tag { font-size: 0.75rem; color: var(--sub-text); background: var(--bg-color); padding: 6px 8px; border-radius: 4px; margin-top: 8px; border: 1px dashed var(--border-color); white-space: pre-wrap; }
+    .memo-tag { font-size: 0.75rem; color: var(--sub-text); background: var(--bg-color); padding: 4px 8px; border-radius: 4px; margin-top: 6px; border: 1px dashed var(--border-color); white-space: pre-wrap; }
 
     .link-group { display: flex; gap: 6px; align-items: center; }
-    .yf-link-btn { display: inline-flex; align-items: center; background: #ff0033; color: white; text-decoration: none; font-size: 0.75rem; font-weight: bold; padding: 3px 6px; border-radius: 12px; }
-    .bbs-link-btn { display: inline-flex; align-items: center; background: #ff9500; color: white; text-decoration: none; font-size: 0.75rem; font-weight: bold; padding: 3px 6px; border-radius: 12px; }
+    .yf-app-btn { display: inline-flex; align-items: center; background: #ff0033; color: white; text-decoration: none; font-size: 0.75rem; font-weight: bold; padding: 3px 8px; border-radius: 12px; }
     
-    .condition-tag { font-size: 0.75rem; color: var(--sub-text); background: var(--preview-bg); padding: 3px 6px; border-radius: 4px; display: inline-block; margin-right: 4px; margin-top: 6px; }
-    .dividend-tag { font-size: 0.75rem; color: #2e7d32; background: #e8f5e9; padding: 3px 6px; border-radius: 4px; display: inline-block; margin-right: 4px; margin-top: 6px; font-weight: bold; }
+    .condition-tag { font-size: 0.7rem; color: var(--sub-text); background: var(--preview-bg); padding: 2px 5px; border-radius: 4px; display: inline-block; margin-right: 4px; margin-top: 4px; }
+    .dividend-tag { font-size: 0.7rem; color: #2e7d32; background: #e8f5e9; padding: 2px 5px; border-radius: 4px; display: inline-block; margin-right: 4px; margin-top: 4px; font-weight: bold; }
+    .gift-tag { font-size: 0.7rem; color: #d81b60; background: #fce4ec; padding: 2px 5px; border-radius: 4px; display: inline-block; margin-right: 4px; margin-top: 4px; font-weight: bold; }
     body.dark-mode .dividend-tag { color: #81c784; background: #1b3820; }
+    body.dark-mode .gift-tag { color: #f48fb1; background: #3a1c28; }
 
-    .btn-group { display: flex; gap: 6px; margin-top: 10px; }
-    .mini-btn { padding: 6px 12px; font-size: 0.75rem; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
-    .icon-btn { padding: 6px 10px; font-size: 0.9rem; background: var(--border-color); border: none; border-radius: 4px; cursor: pointer; color: var(--text-color); }
-    .edit-btn { background: var(--border-color); color: var(--text-color); }
-    .delete-btn { background: #ff3b30; color: white; }
+    .btn-group { display: flex; gap: 8px; margin-top: 8px; justify-content: flex-end; align-items: center; }
+    .icon-btn { padding: 4px 8px; font-size: 0.85rem; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer; color: var(--text-color); }
 
     .dark-toggle-btn { background: none; border: 1px solid var(--border-color); padding: 4px 8px; border-radius: 12px; font-size: 0.75rem; cursor: pointer; color: var(--text-color); }
     .footer { text-align: center; padding: 16px 0 24px; color: var(--sub-text); font-size: 0.75rem; }
@@ -154,22 +157,32 @@
       <button id="refreshBtn" class="refresh-btn" onclick="manualRefresh()">🔄 一括更新</button>
     </div>
 
-    <div class="sort-bar">
-      <span>並び替え:</span>
-      <select id="sortSelect" onchange="renderList()">
-        <option value="created">登録順</option>
-        <option value="favorite">★ お気に入り優先</option>
-        <option value="drop">前日比（下落率が大きい順）</option>
-        <option value="rise">前日比（上昇率が大きい順）</option>
-        <option value="code">銘柄コード順</option>
-      </select>
+    <div class="sort-filter-box">
+      <div class="filter-row">
+        <span>並び:</span>
+        <select id="sortSelect" onchange="renderList()">
+          <option value="created">登録順</option>
+          <option value="favorite">★ お気に入り優先</option>
+          <option value="gift">🎁 優待あり優先</option>
+          <option value="priceDesc">株価が高い順</option>
+          <option value="priceAsc">株価が安い順</option>
+          <option value="drop">下落率が大きい順</option>
+          <option value="rise">上昇率が大きい順</option>
+          <option value="code">銘柄コード順</option>
+        </select>
+      </div>
+      <div class="filter-row">
+        <span>株価絞り込み:</span>
+        <input type="number" id="minPriceInput" placeholder="最小円" style="width: 70px;" oninput="renderList()"> 円 〜
+        <input type="number" id="maxPriceInput" placeholder="最大円" style="width: 70px;" oninput="renderList()"> 円
+      </div>
     </div>
 
     <div id="alertList"></div>
   </div>
 
   <footer class="footer">
-    株価アラート PWA ver 1.6.1
+    株価アラート PWA ver 1.7.0
   </footer>
 
   <script>
@@ -431,6 +444,8 @@
         rate: rate || null,
         memo: memo || '',
         favorite: editingIndex !== null ? (alerts[editingIndex].favorite || false) : false,
+        gift: editingIndex !== null ? (alerts[editingIndex].gift || false) : false,
+        giftDate: editingIndex !== null ? (alerts[editingIndex].giftDate || null) : null,
         disabled: editingIndex !== null ? (alerts[editingIndex].disabled || false) : false
       };
 
@@ -465,6 +480,20 @@
       renderList();
     }
 
+    function toggleGift(index) {
+      alerts[index].gift = !alerts[index].gift;
+      if (alerts[index].gift) {
+        const now = new Date();
+        const yy = String(now.getFullYear()).slice(-2);
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        alerts[index].giftDate = `${yy}/${mm}`;
+      } else {
+        alerts[index].giftDate = null;
+      }
+      saveToStorage();
+      renderList();
+    }
+
     function toggleAlertActive(index) {
       alerts[index].disabled = !alerts[index].disabled;
       saveToStorage();
@@ -479,24 +508,47 @@
       }
 
       const sortType = document.getElementById('sortSelect').value;
-      let sortedAlerts = alerts.map((item, index) => ({ item, originalIndex: index }));
+      const minPrice = parseFloat(document.getElementById('minPriceInput').value) || 0;
+      const maxPrice = parseFloat(document.getElementById('maxPriceInput').value) || Infinity;
 
-      sortedAlerts.sort((a, b) => {
+      let filteredAlerts = alerts.map((item, index) => ({ item, originalIndex: index }))
+        .filter(({ item }) => {
+          const q = priceCache[item.code];
+          if (!q || q.error) return true; 
+          return q.price >= minPrice && q.price <= maxPrice;
+        });
+
+      filteredAlerts.sort((a, b) => {
         if (sortType === 'favorite') return (b.item.favorite ? 1 : 0) - (a.item.favorite ? 1 : 0);
+        if (sortType === 'gift') return (b.item.gift ? 1 : 0) - (a.item.gift ? 1 : 0);
         if (sortType === 'code') return a.item.code.localeCompare(b.item.code);
+        
+        const qA = priceCache[a.item.code];
+        const qB = priceCache[b.item.code];
+
+        if (sortType === 'priceDesc' || sortType === 'priceAsc') {
+          const pA = (qA && !qA.error) ? qA.price : 0;
+          const pB = (qB && !qB.error) ? qB.price : 0;
+          return sortType === 'priceDesc' ? pB - pA : pA - pB;
+        }
+
         if (sortType === 'drop' || sortType === 'rise') {
-          const qA = priceCache[a.item.code];
-          const qB = priceCache[b.item.code];
           const valA = (qA && !qA.error) ? qA.changePercent : 0;
           const valB = (qB && !qB.error) ? qB.changePercent : 0;
           return sortType === 'drop' ? valA - valB : valB - valA;
         }
+
         return a.originalIndex - b.originalIndex;
       });
 
-      listDiv.innerHTML = sortedAlerts.map(({ item, originalIndex }) => {
-        const yfUrl = `https://finance.yahoo.co.jp/quote/${item.code}.T`;
-        const bbsUrl = `https://finance.yahoo.co.jp/quote/${item.code}.T/bbs`;
+      if (filteredAlerts.length === 0) {
+        listDiv.innerHTML = '<div style="color:#999; font-size:0.85rem; padding:12px 0;">条件に該当する銘柄はありません。</div>';
+        return;
+      }
+
+      listDiv.innerHTML = filteredAlerts.map(({ item, originalIndex }) => {
+        const yfAppUrl = `yj-finance://quote?code=${item.code}.T`;
+        const yfWebUrl = `https://finance.yahoo.co.jp/quote/${item.code}.T`;
         
         const quote = priceCache[item.code];
         
@@ -517,7 +569,7 @@
               <div class="progress-container">
                 <div class="progress-bar" style="width: ${percent}%;"></div>
               </div>
-              <div class="progress-text">指値への到達期待度: ${percent.toFixed(1)}%</div>
+              <div class="progress-text">指値到達度: ${percent.toFixed(1)}%</div>
             `;
           }
         } else if (quote && quote.error) {
@@ -531,14 +583,14 @@
             <div class="item-header">
               <span class="item-title">
                 <button class="star-btn ${item.favorite ? 'active' : ''}" onclick="toggleFavorite(${originalIndex})">★</button>
-                ${item.name} (${item.code})
+                <button class="gift-btn ${item.gift ? 'active' : ''}" onclick="toggleGift(${originalIndex})" title="優待あり/なし切り替え">🎁</button>
+                ${item.name} <span class="code-badge">(${item.code})</span>
               </span>
               <div class="link-group">
                 <button class="toggle-alert-btn" onclick="toggleAlertActive(${originalIndex})" title="${isOFF ? 'アラートOFF（クリックでON）' : 'アラートON（クリックでOFF）'}">
                   ${isOFF ? '🔕' : '🔔'}
                 </button>
-                <a href="${yfUrl}" target="_blank" class="yf-link-btn">Yahoo! ↗</a>
-                <a href="${bbsUrl}" target="_blank" class="bbs-link-btn">掲示板 ↗</a>
+                <a href="${yfAppUrl}" onclick="setTimeout(() => { window.location.href='${yfWebUrl}'; }, 500);" class="yf-app-btn">Y! ↗</a>
               </div>
             </div>
             ${priceDisplay}
@@ -547,12 +599,13 @@
               ${item.price ? `<span class="condition-tag">指値: ${item.price}円以下</span>` : ''}
               ${item.rate ? `<span class="condition-tag">下落: -${item.rate}%以上</span>` : ''}
               ${dividendDisplay}
+              ${item.gift ? `<span class="gift-tag">🎁 優待 <small>(${item.giftDate})</small></span>` : ''}
             </div>
             ${item.memo ? `<div class="memo-tag">📝 ${item.memo}</div>` : ''}
             <div class="btn-group">
-              <button class="icon-btn" onclick="refreshSinglePrice(${originalIndex}, '${item.code}')" title="株価を再取得">🔄</button>
-              <button class="mini-btn edit-btn" onclick="editAlert(${originalIndex})">編集</button>
-              <button class="mini-btn delete-btn" onclick="deleteAlert(${originalIndex})">削除</button>
+              <button class="icon-btn" onclick="refreshSinglePrice(${originalIndex}, '${item.code}')" title="再取得">🔄</button>
+              <button class="icon-btn" onclick="editAlert(${originalIndex})" title="編集">✏️</button>
+              <button class="icon-btn" onclick="deleteAlert(${originalIndex})" title="削除">🗑️</button>
             </div>
           </div>
         `;
