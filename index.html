@@ -27,96 +27,107 @@
       --preview-border: #2c4263;
     }
 
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 12px; background: var(--bg-color); color: var(--text-color); margin: 0; -webkit-user-select: none; user-select: none; transition: background 0.3s, color 0.3s; }
-    .header-bar { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 10px; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 10px; background: var(--bg-color); color: var(--text-color); margin: 0; -webkit-user-select: none; user-select: none; transition: background 0.3s, color 0.3s; }
+    .header-bar { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 8px; }
     .header-title-box { display: flex; align-items: baseline; gap: 6px; }
     .version-tag { font-size: 0.7rem; color: var(--sub-text); font-weight: normal; }
     
-    .card { background: var(--card-bg); padding: 16px; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); margin-bottom: 12px; transition: background 0.3s; }
-    h2 { margin: 0; font-size: 1.1rem; color: var(--text-color); }
-    label { font-size: 0.8rem; color: var(--sub-text); display: block; margin-top: 10px; font-weight: bold; }
+    .card { background: var(--card-bg); padding: 12px 14px; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); margin-bottom: 10px; transition: background 0.3s; }
+    h2 { margin: 0; font-size: 1.05rem; color: var(--text-color); }
+    label { font-size: 0.75rem; color: var(--sub-text); display: block; margin-top: 8px; font-weight: bold; }
     
-    input, select, textarea { width: 100%; padding: 10px; margin-top: 4px; border: 1px solid var(--border-color); border-radius: 6px; box-sizing: border-box; font-size: 16px; background: var(--input-bg); color: var(--text-color); -webkit-user-select: text; user-select: text; }
-    textarea { resize: vertical; height: 60px; font-family: inherit; }
+    input, select, textarea { width: 100%; padding: 8px 10px; margin-top: 3px; border: 1px solid var(--border-color); border-radius: 6px; box-sizing: border-box; font-size: 16px; background: var(--input-bg); color: var(--text-color); -webkit-user-select: text; user-select: text; }
+    textarea { resize: vertical; height: 50px; font-family: inherit; }
 
-    .accordion-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; border-bottom: 2px solid #007aff; padding-bottom: 6px; }
-    .accordion-header::after { content: '▲'; font-size: 0.8rem; color: #007aff; transition: transform 0.3s; }
+    .accordion-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; border-bottom: 2px solid #007aff; padding-bottom: 4px; }
+    .accordion-header::after { content: '▲'; font-size: 0.75rem; color: #007aff; transition: transform 0.3s; }
     .accordion-header.collapsed::after { transform: rotate(180deg); }
 
-    /* ステータスバー（2行ですっきりレイアウト） */
-    .status-bar { font-size: 0.75rem; color: var(--sub-text); background: var(--preview-bg); padding: 10px 12px; border-radius: 6px; margin-bottom: 12px; }
-    .status-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
-    .status-sub-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.68rem; color: var(--sub-text); border-top: 1px dashed var(--border-color); padding-top: 4px; }
-    .status-dot { height: 8px; width: 8px; background-color: #bbb; border-radius: 50%; display: inline-block; margin-right: 4px; }
+    /* ステータスバー（2行） */
+    .status-bar { font-size: 0.73rem; color: var(--sub-text); background: var(--preview-bg); padding: 8px 10px; border-radius: 6px; margin-bottom: 10px; }
+    .status-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px; }
+    .status-sub-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.65rem; color: var(--sub-text); border-top: 1px dashed var(--border-color); padding-top: 3px; }
+    .status-dot { height: 7px; width: 7px; background-color: #bbb; border-radius: 50%; display: inline-block; margin-right: 4px; }
     .status-dot.active { background-color: #4caf50; }
 
-    .yf-price-box { display: flex; align-items: baseline; gap: 8px; margin-top: 4px; }
-    .yf-icon-up { background: #1e88e5; color: white; border-radius: 4px; padding: 2px 6px; font-weight: bold; font-size: 0.85rem; }
-    .yf-icon-down { background: #e53935; color: white; border-radius: 4px; padding: 2px 6px; font-weight: bold; font-size: 0.85rem; }
-    .yf-price-val { font-size: 1.3rem; font-weight: bold; color: var(--text-color); letter-spacing: -0.5px; }
-    .yf-change-up { color: #1e88e5; font-weight: bold; font-size: 0.85rem; line-height: 1.2; }
-    .yf-change-down { color: #e53935; font-weight: bold; font-size: 0.85rem; line-height: 1.2; }
+    /* 銘柄コード入力 ＆ プレビューの横並びレイアウト */
+    .code-preview-row { display: flex; gap: 8px; align-items: stretch; margin-top: 4px; }
+    .code-input-box { width: 90px; flex-shrink: 0; }
+    .code-input-box input { text-align: center; font-weight: bold; font-size: 1.1rem; letter-spacing: 1px; padding: 6px; }
+    
+    .stock-info-preview { flex-grow: 1; background: var(--preview-bg); border: 1px solid var(--preview-border); padding: 6px 10px; border-radius: 6px; display: flex; flex-direction: column; justify-content: center; min-height: 42px; }
+    .preview-name-line { font-size: 0.8rem; font-weight: bold; color: #007aff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .preview-price-line { font-size: 0.85rem; font-weight: bold; margin-top: 2px; display: flex; align-items: center; gap: 6px; }
 
-    .stock-info-preview { background: var(--preview-bg); border: 1px solid var(--preview-border); padding: 12px; border-radius: 8px; margin-top: 10px; }
-    .stock-title { font-weight: bold; font-size: 1rem; color: #007aff; }
+    .yf-price-box { display: flex; align-items: baseline; gap: 6px; }
+    .yf-icon-up { background: #1e88e5; color: white; border-radius: 3px; padding: 1px 4px; font-weight: bold; font-size: 0.75rem; }
+    .yf-icon-down { background: #e53935; color: white; border-radius: 3px; padding: 1px 4px; font-weight: bold; font-size: 0.75rem; }
+    .yf-change-up { color: #1e88e5; font-weight: bold; font-size: 0.75rem; }
+    .yf-change-down { color: #e53935; font-weight: bold; font-size: 0.75rem; }
 
-    .condition-box { background: var(--bg-color); border: 1px solid var(--border-color); padding: 12px; border-radius: 8px; margin-top: 12px; }
-    .submit-btn { width: 100%; padding: 12px; background: #007aff; color: white; border: none; border-radius: 6px; font-size: 1rem; font-weight: bold; margin-top: 14px; cursor: pointer; }
+    /* 条件①②の横並び */
+    .conditions-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; }
+
+    /* 登録時のオプション選択行 */
+    .register-options { display: flex; gap: 12px; align-items: center; margin-top: 8px; background: var(--bg-color); padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-color); font-size: 0.8rem; }
+    .option-label { display: flex; align-items: center; gap: 4px; cursor: pointer; font-weight: bold; }
+
+    .submit-btn { width: 100%; padding: 10px; background: #007aff; color: white; border: none; border-radius: 6px; font-size: 0.95rem; font-weight: bold; margin-top: 10px; cursor: pointer; }
     .submit-btn:disabled { background: #ccc; cursor: not-allowed; }
-    .notify-btn { width: 100%; padding: 10px; background: #34c759; color: white; border: none; border-radius: 6px; font-size: 0.9rem; font-weight: bold; margin-bottom: 12px; cursor: pointer; }
-    .refresh-btn { padding: 6px 12px; background: #007aff; color: white; border: none; border-radius: 16px; font-size: 0.75rem; font-weight: bold; cursor: pointer; }
+    .notify-btn { width: 100%; padding: 8px; background: #34c759; color: white; border: none; border-radius: 6px; font-size: 0.85rem; font-weight: bold; margin-bottom: 10px; cursor: pointer; }
+    .refresh-btn { padding: 4px 10px; background: #007aff; color: white; border: none; border-radius: 14px; font-size: 0.75rem; font-weight: bold; cursor: pointer; }
     .refresh-btn:disabled { background: #ccc; cursor: not-allowed; }
 
-    .list-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #007aff; padding-bottom: 6px; margin-bottom: 12px; }
-    .sort-filter-box { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; font-size: 0.8rem; background: var(--bg-color); padding: 8px; border-radius: 8px; border: 1px solid var(--border-color); }
+    .list-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #007aff; padding-bottom: 4px; margin-bottom: 10px; }
+    .sort-filter-box { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; font-size: 0.78rem; background: var(--bg-color); padding: 6px 8px; border-radius: 6px; border: 1px solid var(--border-color); }
     .filter-row { display: flex; align-items: center; gap: 6px; }
-    .filter-row input { padding: 4px 6px; font-size: 16px; margin: 0; }
-    /* セレクトボックスが「並ひ」にならないよう幅とレイアウトを調整 */
-    .sort-select { max-width: 170px; font-size: 0.8rem; padding: 6px; }
+    .filter-row input { padding: 3px 6px; font-size: 14px; margin: 0; }
+    .sort-select { max-width: 170px; font-size: 0.78rem; padding: 5px; }
 
-    .item { padding: 12px; border-radius: 8px; position: relative; margin-bottom: 8px; background: var(--card-bg); border: 1px solid var(--border-color); }
+    .item { padding: 10px 12px; border-radius: 8px; position: relative; margin-bottom: 8px; background: var(--card-bg); border: 1px solid var(--border-color); }
     .item.favorite { border-left: 5px solid #ffcc00; }
     .item.disabled { opacity: 0.6; background: var(--bg-color); }
     .item-header { display: flex; justify-content: space-between; align-items: center; }
-    .item-title { font-size: 1rem; font-weight: bold; color: var(--text-color); display: flex; align-items: center; gap: 4px; }
-    .code-badge { font-size: 0.75rem; color: var(--sub-text); font-weight: normal; }
+    .item-title { font-size: 0.95rem; font-weight: bold; color: var(--text-color); display: flex; align-items: center; gap: 4px; }
+    .code-badge { font-size: 0.7rem; color: var(--sub-text); font-weight: normal; }
 
-    .star-btn, .gift-btn, .toggle-alert-btn { background: none; border: none; font-size: 1.1rem; cursor: pointer; padding: 0 2px; }
+    .star-btn, .gift-btn, .toggle-alert-btn { background: none; border: none; font-size: 1rem; cursor: pointer; padding: 0 2px; }
     .star-btn { color: #ccc; }
     .star-btn.active { color: #ffcc00; }
     .gift-btn { opacity: 0.3; filter: grayscale(100%); }
     .gift-btn.active { opacity: 1; filter: grayscale(0%); }
 
-    /* プログレスバーを控えめサイズに調整 */
-    .progress-container { margin-top: 6px; background: var(--border-color); border-radius: 4px; height: 5px; width: 140px; overflow: hidden; display: inline-block; vertical-align: middle; }
+    /* プログレスバー（控えめサイズ） */
+    .progress-container { margin-top: 4px; background: var(--border-color); border-radius: 4px; height: 4px; width: 130px; overflow: hidden; display: inline-block; vertical-align: middle; }
     .progress-bar { height: 100%; background: #007aff; width: 0%; transition: width 0.3s; }
-    .progress-text { font-size: 0.7rem; color: var(--sub-text); display: inline-block; margin-left: 6px; }
+    .progress-text { font-size: 0.68rem; color: var(--sub-text); display: inline-block; margin-left: 6px; }
 
-    .memo-tag { font-size: 0.75rem; color: var(--sub-text); background: var(--bg-color); padding: 4px 8px; border-radius: 4px; margin-top: 6px; border: 1px dashed var(--border-color); white-space: pre-wrap; }
+    .memo-tag { font-size: 0.72rem; color: var(--sub-text); background: var(--bg-color); padding: 3px 6px; border-radius: 4px; margin-top: 4px; border: 1px dashed var(--border-color); white-space: pre-wrap; }
 
-    .link-group { display: flex; gap: 6px; align-items: center; }
-    .yf-app-btn { display: inline-flex; align-items: center; background: #ff0033; color: white; text-decoration: none; font-size: 0.75rem; font-weight: bold; padding: 3px 8px; border-radius: 12px; }
+    .link-group { display: flex; gap: 4px; align-items: center; }
+    /* Y!ファイナンスボタンをスッキリ「y!」表記（矢印なし）に */
+    .yf-app-btn { display: inline-flex; align-items: center; justify-content: center; background: #ff0033; color: white; text-decoration: none; font-size: 0.7rem; font-weight: bold; width: 24px; height: 20px; border-radius: 4px; }
     
-    .condition-tag { font-size: 0.7rem; color: var(--sub-text); background: var(--preview-bg); padding: 2px 5px; border-radius: 4px; display: inline-block; margin-right: 4px; margin-top: 4px; }
-    .dividend-tag { font-size: 0.7rem; color: #2e7d32; background: #e8f5e9; padding: 2px 5px; border-radius: 4px; display: inline-block; margin-right: 4px; margin-top: 4px; font-weight: bold; }
-    .gift-tag { font-size: 0.7rem; color: #d81b60; background: #fce4ec; padding: 2px 5px; border-radius: 4px; display: inline-block; margin-right: 4px; margin-top: 4px; font-weight: bold; }
-    .chance-badge { font-size: 0.68rem; color: #d97706; background: #fef3c7; padding: 1px 6px; border-radius: 10px; font-weight: bold; margin-left: 4px; }
+    .condition-tag { font-size: 0.68rem; color: var(--sub-text); background: var(--preview-bg); padding: 1px 4px; border-radius: 4px; display: inline-block; margin-right: 4px; margin-top: 3px; }
+    .dividend-tag { font-size: 0.68rem; color: #2e7d32; background: #e8f5e9; padding: 1px 4px; border-radius: 4px; display: inline-block; margin-right: 4px; margin-top: 3px; font-weight: bold; }
+    .gift-tag { font-size: 0.68rem; color: #d81b60; background: #fce4ec; padding: 1px 4px; border-radius: 4px; display: inline-block; margin-right: 4px; margin-top: 3px; font-weight: bold; }
+    .chance-badge { font-size: 0.65rem; color: #d97706; background: #fef3c7; padding: 1px 5px; border-radius: 10px; font-weight: bold; margin-left: 4px; }
     body.dark-mode .dividend-tag { color: #81c784; background: #1b3820; }
     body.dark-mode .gift-tag { color: #f48fb1; background: #3a1c28; }
     body.dark-mode .chance-badge { color: #fcd34d; background: #451a03; }
 
-    .btn-group { display: flex; gap: 6px; margin-top: 6px; justify-content: flex-end; align-items: center; }
-    .icon-btn { padding: 3px 6px; font-size: 0.8rem; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer; color: var(--text-color); }
+    .btn-group { display: flex; gap: 4px; margin-top: 4px; justify-content: flex-end; align-items: center; }
+    .icon-btn { padding: 2px 5px; font-size: 0.75rem; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; color: var(--text-color); }
 
-    .dark-toggle-btn { background: none; border: 1px solid var(--border-color); padding: 4px 8px; border-radius: 12px; font-size: 0.75rem; cursor: pointer; color: var(--text-color); }
+    .dark-toggle-btn { background: none; border: 1px solid var(--border-color); padding: 3px 6px; border-radius: 10px; font-size: 0.7rem; cursor: pointer; color: var(--text-color); }
   </style>
 </head>
 <body>
 
   <div class="header-bar">
     <div class="header-title-box">
-      <h2 style="font-size: 1.2rem;">📈 株価アラート</h2>
-      <span class="version-tag">ver 1.9.1</span>
+      <h2 style="font-size: 1.1rem;">📈 株価アラート</h2>
+      <span class="version-tag">ver 2.0.0</span>
     </div>
     <button class="dark-toggle-btn" onclick="toggleDarkMode()">🌙 ダークモード</button>
   </div>
@@ -140,27 +151,45 @@
     </div>
     
     <div id="formBody">
-      <label for="stockSearchInput">銘柄コード（4桁数字）</label>
-      <input type="number" id="stockSearchInput" placeholder="例: 7203, 9432" oninput="onCodeInput()">
-
-      <div id="stockInfoPreview" class="stock-info-preview" style="display: none;">
-        <div id="previewName" class="stock-title">銘柄名を取得中...</div>
-        <div id="previewPrice">データ取得中...</div>
+      <label>銘柄コード（4桁）＆ プレビュー</label>
+      <div class="code-preview-row">
+        <div class="code-input-box">
+          <input type="number" id="stockSearchInput" placeholder="例:7203" oninput="onCodeInput()" maxlength="4">
+        </div>
+        <div id="stockInfoPreview" class="stock-info-preview">
+          <div id="previewName" class="preview-name-line" style="color: var(--sub-text);">4桁のコードを入力</div>
+          <div id="previewPrice" class="preview-price-line" style="font-size:0.75rem; color:var(--sub-text);">株価等が表示されます</div>
+        </div>
       </div>
 
-      <div class="condition-box">
-        <div style="font-weight: bold; font-size: 0.85rem;">アラート通知条件＆メモ</div>
-        <label for="targetPrice">① 指定指値（この円以下で通知）</label>
-        <input type="number" id="targetPrice" placeholder="例: 1000">
+      <!-- 銘柄名のカスタム変更（英語対策） -->
+      <label for="customNameInput" style="margin-top:6px;">表示名（必要なら変更できます）</label>
+      <input type="text" id="customNameInput" placeholder="例: 楽天グループ（自動入力されます）">
 
-        <label for="targetDropRate">② 値下がり率（前日比 -%以上で通知）</label>
-        <input type="number" id="targetDropRate" placeholder="例: 3">
-
-        <label for="memoInput">③ メモ（買い増し理由など）</label>
-        <textarea id="memoInput" placeholder="例: PER10倍以下。決算発表後に確認"></textarea>
+      <div class="conditions-grid">
+        <div>
+          <label for="targetPrice">① 指値 (円以下)</label>
+          <input type="number" id="targetPrice" placeholder="例: 1000">
+        </div>
+        <div>
+          <label for="targetDropRate">② 下落率 (-%以上)</label>
+          <input type="number" id="targetDropRate" placeholder="例: 3">
+        </div>
       </div>
 
-      <button id="submitBtn" class="submit-btn" onclick="addAlert()" disabled>4桁の銘柄コードを入力してください</button>
+      <div class="register-options">
+        <label class="option-label">
+          <input type="checkbox" id="regFavCheckbox" style="width:auto; margin:0;"> ⭐ お気に入り
+        </label>
+        <label class="option-label">
+          <input type="checkbox" id="regGiftCheckbox" style="width:auto; margin:0;"> 🎁 優待あり
+        </label>
+      </div>
+
+      <label for="memoInput">③ メモ（買い増し理由など）</label>
+      <textarea id="memoInput" placeholder="例: PER10倍以下。決算発表後に確認"></textarea>
+
+      <button id="submitBtn" class="submit-btn" onclick="addAlert()" disabled>銘柄コードを入力してください</button>
     </div>
   </div>
 
@@ -189,8 +218,8 @@
       </div>
       <div class="filter-row">
         <span>株価絞り込み:</span>
-        <input type="number" id="minPriceInput" placeholder="最小円" style="width: 70px;" oninput="renderList()"> 円 〜
-        <input type="number" id="maxPriceInput" placeholder="最大円" style="width: 70px;" oninput="renderList()"> 円
+        <input type="number" id="minPriceInput" placeholder="最小" style="width: 60px;" oninput="renderList()"> 円 〜
+        <input type="number" id="maxPriceInput" placeholder="最大" style="width: 60px;" oninput="renderList()"> 円
       </div>
     </div>
 
@@ -204,6 +233,8 @@
       "7203": "トヨタ自動車",
       "9432": "NTT",
       "9434": "ソフトバンク",
+      "4755": "楽天グループ",
+      "7775": "大建メディカル",
       "7261": "マツダ",
       "9984": "ソフトバンクグループ",
       "8306": "三菱UFJ",
@@ -335,22 +366,16 @@
         const changeNum = parseFloat((price - prevClose).toFixed(2));
         const changePercent = parseFloat(((changeNum / prevClose) * 100).toFixed(2));
         
-        let name = NAME_FIX_MAP[code] || meta.shortName || meta.symbol.replace('.T', '');
+        let rawName = meta.shortName || meta.symbol.replace('.T', '');
+        let name = NAME_FIX_MAP[code] || rawName;
+        
         const dividendRate = meta.trailingAnnualDividendRate || null;
         let dividendYield = null;
         if (dividendRate && price > 0) {
           dividendYield = parseFloat(((dividendRate / price) * 100).toFixed(2));
         }
 
-        return { 
-          code, 
-          name, 
-          price, 
-          changeNum, 
-          changePercent,
-          dividendRate,
-          dividendYield
-        };
+        return { code, name, rawName, price, changeNum, changePercent, dividendRate, dividendYield };
       } catch (e) {
         return null;
       }
@@ -359,31 +384,42 @@
     function onCodeInput() {
       clearTimeout(searchTimer);
       const code = document.getElementById('stockSearchInput').value.trim();
-      const previewDiv = document.getElementById('stockInfoPreview');
+      const nameLine = document.getElementById('previewName');
+      const priceLine = document.getElementById('previewPrice');
 
       if (code.length !== 4) {
-        previewDiv.style.display = 'none';
+        nameLine.innerText = '4桁のコードを入力';
+        nameLine.style.color = 'var(--sub-text)';
+        priceLine.innerHTML = '株価等が表示されます';
         resetSubmitBtn();
         return;
       }
 
-      previewDiv.style.display = 'block';
-      document.getElementById('previewName').innerText = '株価情報を取得中...';
-      document.getElementById('previewPrice').innerHTML = '';
+      nameLine.innerText = '情報を取得中...';
+      nameLine.style.color = '#007aff';
+      priceLine.innerHTML = '';
 
       searchTimer = setTimeout(async () => {
         const stockData = await fetchStockQuote(code);
         if (stockData) {
           currentFetchedStock = stockData;
-          document.getElementById('previewName').innerText = `${stockData.name} (${stockData.code})`;
-          document.getElementById('previewPrice').innerHTML = createYfHTML(stockData);
+          nameLine.innerText = `${stockData.name} (${stockData.code})`;
+          priceLine.innerHTML = createYfHTML(stockData);
+          
+          // カスタム名入力欄に自動反映（未入力またはプレビュー中なら）
+          const customInput = document.getElementById('customNameInput');
+          if (!customInput.value || editingIndex !== null) {
+            customInput.value = stockData.name;
+          }
+
           const submitBtn = document.getElementById('submitBtn');
           submitBtn.disabled = false;
           submitBtn.innerText = editingIndex !== null ? '変更を保存する' : 'アラートを追加する';
         } else {
           currentFetchedStock = null;
-          document.getElementById('previewName').innerText = '取得エラー';
-          document.getElementById('previewPrice').innerHTML = '<div style="color:#e53935;">※正しい4桁の銘柄コードを入力してください</div>';
+          nameLine.innerText = '取得エラー';
+          nameLine.style.color = '#e53935';
+          priceLine.innerHTML = '正しい4桁コードを確認してください';
           resetSubmitBtn();
         }
       }, 150);
@@ -392,7 +428,7 @@
     function resetSubmitBtn() {
       const submitBtn = document.getElementById('submitBtn');
       submitBtn.disabled = true;
-      submitBtn.innerText = '4桁の銘柄コードを入力してください';
+      submitBtn.innerText = '銘柄コードを入力してください';
       currentFetchedStock = null;
     }
 
@@ -405,10 +441,8 @@
       return `
         <div class="yf-price-box">
           <div class="${iconClass}">${arrow}</div>
-          <div class="yf-price-val">${quote.price.toLocaleString()}円</div>
-          <div style="margin-left: 6px;">
-            <div class="${changeClass}">${isUp ? '+' : ''}${quote.changeNum} (${isUp ? '+' : ''}${quote.changePercent}%)</div>
-          </div>
+          <span style="font-size:0.9rem;">${quote.price.toLocaleString()}円</span>
+          <span class="${changeClass}">${isUp ? '+' : ''}${quote.changeNum} (${isUp ? '+' : ''}${quote.changePercent}%)</span>
         </div>
       `;
     }
@@ -428,11 +462,6 @@
       const quote = await fetchStockQuote(code);
       if (quote) {
         priceCache[code] = quote;
-        if (NAME_FIX_MAP[code]) {
-          alerts[index].name = NAME_FIX_MAP[code];
-        } else if (alerts[index].name !== quote.name) {
-          alerts[index].name = quote.name;
-        }
         saveToStorage();
         checkAndNotify(alerts[index], quote);
       } else {
@@ -447,11 +476,6 @@
         const quote = await fetchStockQuote(item.code);
         if (quote) {
           priceCache[item.code] = quote;
-          if (NAME_FIX_MAP[item.code]) {
-            item.name = NAME_FIX_MAP[item.code];
-          } else if (item.name !== quote.name) {
-            item.name = quote.name;
-          }
           saveToStorage();
           checkAndNotify(item, quote);
         } else {
@@ -463,7 +487,6 @@
 
     function checkAndNotify(item, quote) {
       if (item.disabled) return;
-
       let triggered = [];
       if (item.price && quote.price <= parseFloat(item.price)) {
         triggered.push(`指定指値(${item.price}円)以下 (${quote.price}円)`);
@@ -481,29 +504,36 @@
 
       const isExist = alerts.some((item, idx) => item.code === currentFetchedStock.code && idx !== editingIndex);
       if (isExist) {
-        if (!confirm(`【${currentFetchedStock.name} (${currentFetchedStock.code})】は既にリストに存在します。\n本当に登録しますか？`)) {
-          return;
-        }
+        if (!confirm(`【${currentFetchedStock.code}】は既にリストに存在します。本当に登録しますか？`)) return;
       }
 
+      const customName = document.getElementById('customNameInput').value.trim();
+      const finalName = customName || currentFetchedStock.name;
       const price = document.getElementById('targetPrice').value;
       const rate = document.getElementById('targetDropRate').value;
       const memo = document.getElementById('memoInput').value;
+      const isFav = document.getElementById('regFavCheckbox').checked;
+      const isGift = document.getElementById('regGiftCheckbox').checked;
 
-      if (!price && !rate && !memo) {
-        alert('アラート条件（指値・値下がり率）またはメモを入力してください。');
-        return;
+      let giftDateVal = null;
+      if (isGift) {
+        if (editingIndex !== null && alerts[editingIndex].giftDate) {
+          giftDateVal = alerts[editingIndex].giftDate;
+        } else {
+          const now = new Date();
+          giftDateVal = `${String(now.getFullYear()).slice(-2)}/${String(now.getMonth() + 1).padStart(2, '0')}`;
+        }
       }
 
       const alertData = { 
-        name: NAME_FIX_MAP[currentFetchedStock.code] || currentFetchedStock.name, 
+        name: finalName, 
         code: currentFetchedStock.code, 
         price: price || null, 
         rate: rate || null,
         memo: memo || '',
-        favorite: editingIndex !== null ? (alerts[editingIndex].favorite || false) : false,
-        gift: editingIndex !== null ? (alerts[editingIndex].gift || false) : false,
-        giftDate: editingIndex !== null ? (alerts[editingIndex].giftDate || null) : null,
+        favorite: isFav,
+        gift: isGift,
+        giftDate: giftDateVal,
         disabled: editingIndex !== null ? (alerts[editingIndex].disabled || false) : false
       };
 
@@ -517,18 +547,21 @@
 
       saveToStorage();
       clearForm();
-      
       if (isFormOpen) toggleFormAccordion();
-
       refreshAllPrices();
     }
 
     function clearForm() {
       document.getElementById('stockSearchInput').value = '';
+      document.getElementById('customNameInput').value = '';
       document.getElementById('targetPrice').value = '';
       document.getElementById('targetDropRate').value = '';
       document.getElementById('memoInput').value = '';
-      document.getElementById('stockInfoPreview').style.display = 'none';
+      document.getElementById('regFavCheckbox').checked = false;
+      document.getElementById('regGiftCheckbox').checked = false;
+      document.getElementById('previewName').innerText = '4桁のコードを入力';
+      document.getElementById('previewName').style.color = 'var(--sub-text)';
+      document.getElementById('previewPrice').innerHTML = '株価等が表示されます';
       resetSubmitBtn();
     }
 
@@ -540,13 +573,9 @@
 
     function toggleGift(index) {
       alerts[index].gift = !alerts[index].gift;
-      if (alerts[index].gift) {
+      if (alerts[index].gift && !alerts[index].giftDate) {
         const now = new Date();
-        const yy = String(now.getFullYear()).slice(-2);
-        const mm = String(now.getMonth() + 1).padStart(2, '0');
-        alerts[index].giftDate = `${yy}/${mm}`;
-      } else {
-        alerts[index].giftDate = null;
+        alerts[index].giftDate = `${String(now.getFullYear()).slice(-2)}/${String(now.getMonth() + 1).padStart(2, '0')}`;
       }
       saveToStorage();
       renderList();
@@ -558,42 +587,31 @@
       renderList();
     }
 
-    // 購入チャンススコアを計算するロジック (0〜100pt)
     function calculateChanceScore(item, quote) {
       if (!quote || quote.error) return 0;
-      let score = 50; // 基準点
-
-      // 1. 指値への近さ (指値に近づくほど高得点)
+      let score = 50;
       if (item.price) {
         const target = parseFloat(item.price);
         const current = quote.price;
-        if (current <= target) {
-          score += 40; // すでに指値達成！
-        } else {
-          const diffRatio = (current - target) / target; // 指値からの乖離率
-          if (diffRatio < 0.05) score += 30;       // あと5%以内
-          else if (diffRatio < 0.10) score += 20;  // あと10%以内
+        if (current <= target) score += 40;
+        else {
+          const diffRatio = (current - target) / target;
+          if (diffRatio < 0.05) score += 30;
+          else if (diffRatio < 0.10) score += 20;
           else if (diffRatio < 0.20) score += 10;
         }
       }
-
-      // 2. 下落率の大きさ (大きく下がっているほど買い時チャンス)
       if (quote.changePercent < 0) {
         score += Math.min(Math.abs(quote.changePercent) * 5, 20);
       }
-
-      // 3. お気に入り補正
-      if (item.favorite) {
-        score += 10;
-      }
-
+      if (item.favorite) score += 10;
       return Math.min(Math.round(score), 100);
     }
 
     function renderList() {
       const listDiv = document.getElementById('alertList');
       if (alerts.length === 0) {
-        listDiv.innerHTML = '<div style="color:#999; font-size:0.85rem; padding:12px 0;">登録されているアラートはありません。</div>';
+        listDiv.innerHTML = '<div style="color:#999; font-size:0.8rem; padding:10px 0;">登録されているアラートはありません。</div>';
         return;
       }
 
@@ -619,38 +637,35 @@
       filteredAlerts.sort((a, b) => {
         if (sortType === 'chance') return b.chanceScore - a.chanceScore;
         if (sortType === 'favorite') return (b.item.favorite ? 1 : 0) - (a.item.favorite ? 1 : 0);
-        if (sortType === 'not-favorite') return (a.item.favorite ? 0 : 1) - (b.item.favorite ? 0 : 1);
+        if (sortType === 'not-favorite') return (b.item.favorite ? 0 : 1) - (a.item.favorite ? 0 : 1);
         if (sortType === 'target-close') return b.percent - a.percent;
         if (sortType === 'gift') return (b.item.gift ? 1 : 0) - (a.item.gift ? 1 : 0);
         if (sortType === 'code') return a.item.code.localeCompare(b.item.code);
         
         const qA = a.quote;
         const qB = b.quote;
-
         if (sortType === 'priceDesc' || sortType === 'priceAsc') {
           const pA = (qA && !qA.error) ? qA.price : 0;
           const pB = (qB && !qB.error) ? qB.price : 0;
           return sortType === 'priceDesc' ? pB - pA : pA - pB;
         }
-
         if (sortType === 'drop' || sortType === 'rise') {
           const valA = (qA && !qA.error) ? qA.changePercent : 0;
           const valB = (qB && !qB.error) ? qB.changePercent : 0;
           return sortType === 'drop' ? valA - valB : valB - valA;
         }
-
         return a.originalIndex - b.originalIndex;
       });
 
       if (filteredAlerts.length === 0) {
-        listDiv.innerHTML = '<div style="color:#999; font-size:0.85rem; padding:12px 0;">条件に該当する銘柄はありません。</div>';
+        listDiv.innerHTML = '<div style="color:#999; font-size:0.8rem; padding:10px 0;">条件に該当する銘柄はありません。</div>';
         return;
       }
 
       listDiv.innerHTML = filteredAlerts.map(({ item, originalIndex, quote, chanceScore, percent }) => {
         const yfWebUrl = `https://finance.yahoo.co.jp/quote/${item.code}.T`;
         
-        let priceDisplay = '<div style="font-size:0.8rem; color:#888; margin-top:4px;">株価を取得中...</div>';
+        let priceDisplay = '<div style="font-size:0.75rem; color:#888; margin-top:3px;">株価を取得中...</div>';
         let progressArea = '';
         let dividendDisplay = '';
         let chanceBadgeHtml = `<span class="chance-badge">🔥 ${chanceScore}pt</span>`;
@@ -663,7 +678,7 @@
           }
           if (item.price) {
             progressArea = `
-              <div style="margin-top: 6px;">
+              <div style="margin-top: 4px;">
                 <div class="progress-container">
                   <div class="progress-bar" style="width: ${percent}%;"></div>
                 </div>
@@ -672,7 +687,7 @@
             `;
           }
         } else if (quote && quote.error) {
-          priceDisplay = '<div style="font-size:0.8rem; color:#e53935; margin-top:4px;">※現在値の取得失敗</div>';
+          priceDisplay = '<div style="font-size:0.75rem; color:#e53935; margin-top:3px;">※取得失敗</div>';
         }
 
         const isOFF = item.disabled;
@@ -682,15 +697,15 @@
             <div class="item-header">
               <span class="item-title">
                 <button class="star-btn ${item.favorite ? 'active' : ''}" onclick="toggleFavorite(${originalIndex})">★</button>
-                <button class="gift-btn ${item.gift ? 'active' : ''}" onclick="toggleGift(${originalIndex})" title="優待あり/なし切り替え">🎁</button>
+                <button class="gift-btn ${item.gift ? 'active' : ''}" onclick="toggleGift(${originalIndex})" title="優待切り替え">🎁</button>
                 ${item.name} <span class="code-badge">(${item.code})</span>
                 ${chanceBadgeHtml}
               </span>
               <div class="link-group">
-                <button class="toggle-alert-btn" onclick="toggleAlertActive(${originalIndex})" title="${isOFF ? 'アラートOFF（クリックでON）' : 'アラートON（クリックでOFF）'}">
+                <button class="toggle-alert-btn" onclick="toggleAlertActive(${originalIndex})" title="${isOFF ? 'アラートOFF' : 'アラートON'}">
                   ${isOFF ? '🔕' : '🔔'}
                 </button>
-                <a href="${yfWebUrl}" target="_blank" class="yf-app-btn">Y! ↗</a>
+                <a href="${yfWebUrl}" target="_blank" class="yf-app-btn" title="Yahoo!ファイナンス">y!</a>
               </div>
             </div>
             ${priceDisplay}
@@ -699,7 +714,7 @@
               ${item.price ? `<span class="condition-tag">指値: ${item.price}円</span>` : ''}
               ${item.rate ? `<span class="condition-tag">下落: -${item.rate}%以上</span>` : ''}
               ${dividendDisplay}
-              ${item.gift ? `<span class="gift-tag">🎁 優待 <small>(${item.giftDate})</small></span>` : ''}
+              ${item.gift ? `<span class="gift-tag">🎁 優待 <small>(${item.giftDate || ''})</small></span>` : ''}
             </div>
             ${item.memo ? `<div class="memo-tag">📝 ${item.memo}</div>` : ''}
             <div class="btn-group">
@@ -716,9 +731,12 @@
       const item = alerts[index];
       if (!isFormOpen) toggleFormAccordion();
       document.getElementById('stockSearchInput').value = item.code;
+      document.getElementById('customNameInput').value = item.name;
       document.getElementById('targetPrice').value = item.price || '';
       document.getElementById('targetDropRate').value = item.rate || '';
       document.getElementById('memoInput').value = item.memo || '';
+      document.getElementById('regFavCheckbox').checked = item.favorite || false;
+      document.getElementById('regGiftCheckbox').checked = item.gift || false;
       editingIndex = index;
       document.getElementById('formTitle').innerText = 'アラートの編集';
       onCodeInput();
