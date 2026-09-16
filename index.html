@@ -39,9 +39,9 @@
     input, select, textarea { width: 100%; padding: 8px 10px; margin-top: 3px; border: 1px solid var(--border-color); border-radius: 6px; box-sizing: border-box; font-size: 16px; background: var(--input-bg); color: var(--text-color); -webkit-user-select: text; user-select: text; }
     textarea { resize: vertical; height: 50px; font-family: inherit; }
 
-    .accordion-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; border-bottom: 2px solid #007aff; padding-bottom: 4px; }
-    .accordion-header::after { content: '▲'; font-size: 0.75rem; color: #007aff; transition: transform 0.3s; }
-    .accordion-header.collapsed::after { transform: rotate(180deg); }
+    /* 登録アコーディオンヘッダー（▼を廃止し登録アイコンへ） */
+    .accordion-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; }
+    .register-toggle-btn { background: #007aff; color: white; border: none; border-radius: 6px; padding: 5px 12px; font-size: 0.8rem; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 4px; }
 
     .status-bar { font-size: 0.73rem; color: var(--sub-text); background: var(--preview-bg); padding: 8px 10px; border-radius: 6px; margin-bottom: 10px; }
     .status-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px; }
@@ -142,7 +142,7 @@
     .modal-btn-cancel { background: var(--border-color); color: var(--text-color); }
     .modal-btn-submit { background: #007aff; color: white; }
 
-    /* 起動時お知らせポップアップ（通常＆最小化用フローティングバナー） */
+    /* 起動時条件達成まとめポップアップ */
     #startupPopupModal .modal-content { max-width: 320px; border: 2px solid #ff3b30; }
     .popup-item-list { font-size: 0.8rem; margin: 10px 0; max-height: 150px; overflow-y: auto; background: var(--bg-color); padding: 8px; border-radius: 6px; }
     
@@ -155,7 +155,7 @@
   <div class="header-bar">
     <div class="header-title-box">
       <h2 style="font-size: 1.1rem;">📈 株価アラート</h2>
-      <span class="version-tag">ver 2.3.0</span>
+      <span class="version-tag">ver 2.4.0</span>
     </div>
     <button class="dark-toggle-btn" onclick="toggleDarkMode()">🌙 ダークモード</button>
   </div>
@@ -174,16 +174,19 @@
   <button class="notify-btn" onclick="requestNotificationPermission()">🔔 通知の許可を設定する</button>
 
   <div class="card">
-    <div class="accordion-header" id="formAccordionHeader" onclick="toggleFormAccordion()">
+    <div class="accordion-header">
       <h2 id="formTitle">銘柄の登録</h2>
+      <!-- ▼の代わりに「登録」アイコンボタンを配置 -->
+      <button class="register-toggle-btn" onclick="toggleFormAccordion()">📝 登録</button>
     </div>
     
-    <div id="formBody">
+    <!-- アプリ起動時はデフォルトで閉じた状態（display: none）に設定 -->
+    <div id="formBody" style="display: none; margin-top: 10px;">
       <label>銘柄コード（4桁）＆ プレビュー</label>
       <div class="code-preview-row">
         <div class="code-input-box">
-          <!-- 数字キーボードが出るように入力欄を最適化 -->
-          <input type="tel" inputmode="numeric" pattern="\d*" id="stockSearchInput" placeholder="例:7203" oninput="onCodeInput()" maxlength="4">
+          <!-- 数字入力に完全にロック -->
+          <input type="number" id="stockSearchInput" placeholder="例:7203" oninput="onCodeInput()" maxlength="4">
         </div>
         <div id="stockInfoPreview" class="stock-info-preview">
           <div id="previewName" class="preview-name-line" style="color: var(--sub-text);">4桁のコードを入力</div>
@@ -194,11 +197,13 @@
       <div class="conditions-grid">
         <div>
           <label for="targetPrice">① 指値 (円以下)</label>
-          <input type="tel" inputmode="numeric" pattern="\d*" id="targetPrice" placeholder="例: 1000">
+          <!-- 数字入力にロック -->
+          <input type="number" id="targetPrice" placeholder="例: 1000">
         </div>
         <div>
           <label for="targetDropRate">② 下落率 (-%以上)</label>
-          <input type="tel" inputmode="numeric" pattern="\d*" id="targetDropRate" placeholder="例: 3">
+          <!-- 数字入力にロック -->
+          <input type="number" id="targetDropRate" placeholder="例: 3">
         </div>
       </div>
 
@@ -212,6 +217,7 @@
       </div>
 
       <label for="memoInput">③ メモ（買い増し理由など）</label>
+      <!-- メモ欄は初期状態で通常の文字入力 -->
       <textarea id="memoInput" placeholder="例: PER10倍以下。決算発表後に確認"></textarea>
 
       <button id="submitBtn" class="submit-btn" onclick="handleFormSubmit(false)" disabled>銘柄コードを入力してください</button>
@@ -243,8 +249,8 @@
       </div>
       <div class="filter-row">
         <span>株価絞り込み:</span>
-        <input type="tel" inputmode="numeric" pattern="\d*" id="minPriceInput" placeholder="最小" style="width: 60px;" oninput="renderList()"> 円 〜
-        <input type="tel" inputmode="numeric" pattern="\d*" id="maxPriceInput" placeholder="最大" style="width: 60px;" oninput="renderList()"> 円
+        <input type="number" id="minPriceInput" placeholder="最小" style="width: 60px;" oninput="renderList()"> 円 〜
+        <input type="number" id="maxPriceInput" placeholder="最大" style="width: 60px;" oninput="renderList()"> 円
       </div>
     </div>
 
@@ -338,7 +344,7 @@
     let priceCache = {};
     let currentFetchedStock = null;
     let searchTimer = null;
-    let isFormOpen = true;
+    let isFormOpen = false; // デフォルトで閉じた状態に変更
     let pendingDuplicateIndex = null;
     let triggeredStockList = [];
 
@@ -356,13 +362,10 @@
     function toggleFormAccordion() {
       isFormOpen = !isFormOpen;
       const body = document.getElementById('formBody');
-      const header = document.getElementById('formAccordionHeader');
       if (isFormOpen) {
         body.style.display = 'block';
-        header.classList.remove('collapsed');
       } else {
         body.style.display = 'none';
-        header.classList.add('collapsed');
       }
     }
 
@@ -877,7 +880,6 @@
               </div>
             </div>
 
-            <!-- 現在株価の行の右横に優待タグを配置 -->
             <div class="price-row-wrapper">
               ${priceDisplay}
               <div>${giftDisplay}</div>
