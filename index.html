@@ -158,7 +158,7 @@
   <div class="header-bar">
     <div class="header-title-box">
       <h2 style="font-size: 1.1rem;">📈 株価アラート</h2>
-      <span class="version-tag">ver 2.6.1</span>
+      <span class="version-tag">ver 2.6.2</span>
     </div>
     <button class="dark-toggle-btn" onclick="toggleDarkMode()">🌙 ダークモード</button>
   </div>
@@ -176,7 +176,8 @@
 
   <div class="top-action-group">
     <button id="globalNotifyBtn" class="notify-btn" onclick="toggleGlobalNotification()">🔔 通知: 読込中...</button>
-    <a href="https://finance.yahoo.co.jp/portfolio" target="_blank" class="portfolio-link-btn">📊 y!ポートフォリオ</a>
+    <!-- リンク先をportfolioId=1に変更 -->
+    <a href="https://finance.yahoo.co.jp/portfolio/detail?portfolioId=1" target="_blank" class="portfolio-link-btn">📊 y!ポートフォリオ</a>
   </div>
 
   <div class="card">
@@ -324,7 +325,6 @@
   <script>
     const MY_SERVER_URL = "https://autumn-shape-d4ac.sub-katu20111023mio.workers.dev";
 
-    // 正しい日本語名マッピング
     const NAME_FIX_MAP = {
       "7203": "トヨタ自動車",
       "9432": "NTT",
