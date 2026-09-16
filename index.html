@@ -51,7 +51,8 @@
 
     /* 上部ボタンの横並びエリア */
     .top-action-group { display: flex; gap: 8px; margin-bottom: 10px; }
-    .notify-btn { flex: 1; padding: 8px; background: #34c759; color: white; border: none; border-radius: 6px; font-size: 0.8rem; font-weight: bold; cursor: pointer; text-align: center; }
+    .notify-btn { flex: 1; padding: 8px; background: #34c759; color: white; border: none; border-radius: 6px; font-size: 0.8rem; font-weight: bold; cursor: pointer; text-align: center; transition: background 0.3s; }
+    .notify-btn.off { background: #8e8e93; } /* 通知OFF時の色 */
     .portfolio-link-btn { flex: 1; padding: 8px; background: #ff0033; color: white; border: none; border-radius: 6px; font-size: 0.8rem; font-weight: bold; cursor: pointer; text-align: center; text-decoration: none; display: flex; align-items: center; justify-content: center; box-sizing: border-box; }
 
     .code-preview-row { display: flex; gap: 8px; align-items: stretch; margin-top: 4px; }
@@ -159,7 +160,7 @@
   <div class="header-bar">
     <div class="header-title-box">
       <h2 style="font-size: 1.1rem;">📈 株価アラート</h2>
-      <span class="version-tag">ver 2.4.1</span>
+      <span class="version-tag">ver 2.5.0</span>
     </div>
     <button class="dark-toggle-btn" onclick="toggleDarkMode()">🌙 ダークモード</button>
   </div>
@@ -175,9 +176,9 @@
     </div>
   </div>
 
-  <!-- 通知ボタンとポートフォリオリンクを横並びに配置 -->
+  <!-- 通知切り替えボタンとポートフォリオリンクを横並びに配置 -->
   <div class="top-action-group">
-    <button class="notify-btn" onclick="requestNotificationPermission()">🔔 通知の許可を設定</button>
+    <button id="globalNotifyBtn" class="notify-btn" onclick="toggleGlobalNotification()">🔔 通知: 読込中...</button>
     <a href="https://finance.yahoo.co.jp/portfolio" target="_blank" class="portfolio-link-btn">📊 y!ポートフォリオ</a>
   </div>
 
@@ -342,6 +343,8 @@
     };
 
     let alerts = JSON.parse(localStorage.getItem('stock_alerts') || '[]');
+    let isGlobalNotifyOn = localStorage.getItem('global_notify') === 'true'; // 通知の全体設定
+
     let editingIndex = null;
     let priceCache = {};
     let currentFetchedStock = null;
@@ -354,12 +357,62 @@
       if (localStorage.getItem('dark_mode') === 'true') {
         document.body.classList.add('dark-mode');
       }
+      initNotificationBtn();
       updateLastOpenTime();
       checkMarketTimeAndMonitor();
       await refreshAllPrices();
       checkStartupTriggers();
       setInterval(checkMarketTimeAndMonitor, 30000);
     };
+
+    // --- 通知トグルボタン関連 ---
+    function initNotificationBtn() {
+      const btn = document.getElementById('globalNotifyBtn');
+      if (isGlobalNotifyOn && ('Notification' in window) && Notification.permission === 'granted') {
+        btn.innerText = '🔔 通知: ON';
+        btn.classList.remove('off');
+      } else {
+        isGlobalNotifyOn = false;
+        btn.innerText = '🔕 通知: OFF';
+        btn.classList.add('off');
+      }
+    }
+
+    function toggleGlobalNotification() {
+      if (!('Notification' in window)) {
+        alert('このブラウザはプッシュ通知に対応していません。');
+        return;
+      }
+
+      if (Notification.permission === 'granted') {
+        isGlobalNotifyOn = !isGlobalNotifyOn;
+        localStorage.setItem('global_notify', isGlobalNotifyOn);
+        initNotificationBtn();
+        if (isGlobalNotifyOn) {
+          sendNotification('通知をONにしました', '設定条件に到達した際にお知らせします。');
+        }
+      } else if (Notification.permission !== 'denied') {
+        Notification.requestPermission().then(p => {
+          if (p === 'granted') {
+            isGlobalNotifyOn = true;
+            localStorage.setItem('global_notify', true);
+            initNotificationBtn();
+            sendNotification('通知をONにしました', '設定条件に到達した際にお知らせします。');
+          } else {
+            alert('通知が拒否されました。ブラウザの設定から許可してください。');
+          }
+        });
+      } else {
+        alert('通知がブロックされています。ブラウザの設定で通知を許可してください。');
+      }
+    }
+
+    function sendNotification(title, body) {
+      if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification(title, { body: body, icon: 'https://finance.yahoo.co.jp/favicon.ico' });
+      }
+    }
+    // ----------------------------
 
     function toggleFormAccordion() {
       isFormOpen = !isFormOpen;
@@ -388,19 +441,6 @@
 
     function saveToStorage() {
       localStorage.setItem('stock_alerts', JSON.stringify(alerts));
-    }
-
-    function requestNotificationPermission() {
-      if ('Notification' in window) {
-        Notification.permission === 'granted' ? alert('通知許可済みです') :
-        Notification.requestPermission().then(p => p === 'granted' ? alert('許可されました！') : alert('拒否されました'));
-      }
-    }
-
-    function sendNotification(title, body) {
-      if ('Notification' in window && Notification.permission === 'granted') {
-        new Notification(title, { body: body, icon: 'https://finance.yahoo.co.jp/favicon.ico' });
-      }
     }
 
     function isMarketOpen() {
@@ -600,6 +640,12 @@
           </div>
         `).join('');
         document.getElementById('startupPopupModal').style.display = 'flex';
+
+        // --- プッシュ通知の送信処理 ---
+        if (isGlobalNotifyOn) {
+          const summaryNames = triggeredStockList.map(t => t.name).join(', ');
+          sendNotification('🚨 条件達成銘柄があります！', `${summaryNames} が設定条件に到達しました。`);
+        }
       }
     }
 
