@@ -91,33 +91,35 @@
     .item-title { font-size: 0.95rem; font-weight: bold; color: var(--text-color); display: flex; align-items: center; gap: 4px; }
     .code-badge { font-size: 0.7rem; color: var(--sub-text); font-weight: normal; }
 
-    .star-btn, .gift-btn, .toggle-alert-btn { background: none; border: none; font-size: 1rem; cursor: pointer; padding: 0 2px; }
+    .star-btn, .toggle-alert-btn { background: none; border: none; font-size: 1rem; cursor: pointer; padding: 0 2px; }
     .star-btn { color: #ccc; }
     .star-btn.active { color: #ffcc00; }
-    .gift-btn { opacity: 0.3; filter: grayscale(100%); }
-    .gift-btn.active { opacity: 1; filter: grayscale(0%); }
 
-    /* プログレスバー（控えめサイズ） */
-    .progress-container { margin-top: 4px; background: var(--border-color); border-radius: 4px; height: 4px; width: 130px; overflow: hidden; display: inline-block; vertical-align: middle; }
+    /* リスト内の情報行（到達バー ＆ 条件タグを横並び） */
+    .list-info-row { display: flex; align-items: center; justify-content: space-between; margin-top: 4px; gap: 6px; flex-wrap: wrap; }
+    .progress-wrapper { display: flex; align-items: center; gap: 6px; }
+    .progress-container { background: var(--border-color); border-radius: 4px; height: 4px; width: 90px; overflow: hidden; display: inline-block; vertical-align: middle; }
     .progress-bar { height: 100%; background: #007aff; width: 0%; transition: width 0.3s; }
-    .progress-text { font-size: 0.68rem; color: var(--sub-text); display: inline-block; margin-left: 6px; }
+    .progress-text { font-size: 0.68rem; color: var(--sub-text); }
 
-    .memo-tag { font-size: 0.72rem; color: var(--sub-text); background: var(--bg-color); padding: 3px 6px; border-radius: 4px; margin-top: 4px; border: 1px dashed var(--border-color); white-space: pre-wrap; }
-
-    .link-group { display: flex; gap: 4px; align-items: center; }
-    /* Y!ファイナンスボタンをスッキリ「y!」表記（矢印なし）に */
-    .yf-app-btn { display: inline-flex; align-items: center; justify-content: center; background: #ff0033; color: white; text-decoration: none; font-size: 0.7rem; font-weight: bold; width: 24px; height: 20px; border-radius: 4px; }
-    
-    .condition-tag { font-size: 0.68rem; color: var(--sub-text); background: var(--preview-bg); padding: 1px 4px; border-radius: 4px; display: inline-block; margin-right: 4px; margin-top: 3px; }
-    .dividend-tag { font-size: 0.68rem; color: #2e7d32; background: #e8f5e9; padding: 1px 4px; border-radius: 4px; display: inline-block; margin-right: 4px; margin-top: 3px; font-weight: bold; }
-    .gift-tag { font-size: 0.68rem; color: #d81b60; background: #fce4ec; padding: 1px 4px; border-radius: 4px; display: inline-block; margin-right: 4px; margin-top: 3px; font-weight: bold; }
-    .chance-badge { font-size: 0.65rem; color: #d97706; background: #fef3c7; padding: 1px 5px; border-radius: 10px; font-weight: bold; margin-left: 4px; }
+    .tags-wrapper { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+    .condition-tag { font-size: 0.68rem; color: var(--sub-text); background: var(--preview-bg); padding: 1px 4px; border-radius: 4px; }
+    .dividend-tag { font-size: 0.68rem; color: #2e7d32; background: #e8f5e9; padding: 1px 4px; border-radius: 4px; font-weight: bold; }
+    .gift-tag { font-size: 0.68rem; color: #d81b60; background: #fce4ec; padding: 1px 4px; border-radius: 4px; font-weight: bold; }
+    .chance-badge { font-size: 0.65rem; color: #d97706; background: #fef3c7; padding: 1px 5px; border-radius: 10px; font-weight: bold; margin-left: 2px; }
     body.dark-mode .dividend-tag { color: #81c784; background: #1b3820; }
     body.dark-mode .gift-tag { color: #f48fb1; background: #3a1c28; }
     body.dark-mode .chance-badge { color: #fcd34d; background: #451a03; }
 
+    .memo-tag { font-size: 0.72rem; color: var(--sub-text); background: var(--bg-color); padding: 3px 6px; border-radius: 4px; margin-top: 4px; border: 1px dashed var(--border-color); white-space: pre-wrap; }
+
+    .link-group { display: flex; gap: 4px; align-items: center; }
+    .yf-app-btn { display: inline-flex; align-items: center; justify-content: center; background: #ff0033; color: white; text-decoration: none; font-size: 0.7rem; font-weight: bold; width: 20px; height: 18px; border-radius: 3px; }
+    
     .btn-group { display: flex; gap: 4px; margin-top: 4px; justify-content: flex-end; align-items: center; }
-    .icon-btn { padding: 2px 5px; font-size: 0.75rem; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; color: var(--text-color); }
+    .icon-btn { padding: 2px 6px; font-size: 0.72rem; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; color: var(--text-color); display: inline-flex; align-items: center; gap: 2px; }
+    .icon-btn.gift-active { color: #d81b60; border-color: #fce4ec; background: #fce4ec; font-weight: bold; }
+    body.dark-mode .icon-btn.gift-active { color: #f48fb1; background: #3a1c28; border-color: #55273a; }
 
     .dark-toggle-btn { background: none; border: 1px solid var(--border-color); padding: 3px 6px; border-radius: 10px; font-size: 0.7rem; cursor: pointer; color: var(--text-color); }
   </style>
@@ -127,7 +129,7 @@
   <div class="header-bar">
     <div class="header-title-box">
       <h2 style="font-size: 1.1rem;">📈 株価アラート</h2>
-      <span class="version-tag">ver 2.0.0</span>
+      <span class="version-tag">ver 2.1.0</span>
     </div>
     <button class="dark-toggle-btn" onclick="toggleDarkMode()">🌙 ダークモード</button>
   </div>
@@ -161,10 +163,6 @@
           <div id="previewPrice" class="preview-price-line" style="font-size:0.75rem; color:var(--sub-text);">株価等が表示されます</div>
         </div>
       </div>
-
-      <!-- 銘柄名のカスタム変更（英語対策） -->
-      <label for="customNameInput" style="margin-top:6px;">表示名（必要なら変更できます）</label>
-      <input type="text" id="customNameInput" placeholder="例: 楽天グループ（自動入力されます）">
 
       <div class="conditions-grid">
         <div>
@@ -406,12 +404,6 @@
           nameLine.innerText = `${stockData.name} (${stockData.code})`;
           priceLine.innerHTML = createYfHTML(stockData);
           
-          // カスタム名入力欄に自動反映（未入力またはプレビュー中なら）
-          const customInput = document.getElementById('customNameInput');
-          if (!customInput.value || editingIndex !== null) {
-            customInput.value = stockData.name;
-          }
-
           const submitBtn = document.getElementById('submitBtn');
           submitBtn.disabled = false;
           submitBtn.innerText = editingIndex !== null ? '変更を保存する' : 'アラートを追加する';
@@ -507,8 +499,7 @@
         if (!confirm(`【${currentFetchedStock.code}】は既にリストに存在します。本当に登録しますか？`)) return;
       }
 
-      const customName = document.getElementById('customNameInput').value.trim();
-      const finalName = customName || currentFetchedStock.name;
+      const finalName = currentFetchedStock.name;
       const price = document.getElementById('targetPrice').value;
       const rate = document.getElementById('targetDropRate').value;
       const memo = document.getElementById('memoInput').value;
@@ -553,7 +544,6 @@
 
     function clearForm() {
       document.getElementById('stockSearchInput').value = '';
-      document.getElementById('customNameInput').value = '';
       document.getElementById('targetPrice').value = '';
       document.getElementById('targetDropRate').value = '';
       document.getElementById('memoInput').value = '';
@@ -678,11 +668,11 @@
           }
           if (item.price) {
             progressArea = `
-              <div style="margin-top: 4px;">
+              <div class="progress-wrapper">
                 <div class="progress-container">
                   <div class="progress-bar" style="width: ${percent}%;"></div>
                 </div>
-                <span class="progress-text">到達度: ${percent.toFixed(1)}%</span>
+                <span class="progress-text">${percent.toFixed(1)}%</span>
               </div>
             `;
           }
@@ -697,7 +687,6 @@
             <div class="item-header">
               <span class="item-title">
                 <button class="star-btn ${item.favorite ? 'active' : ''}" onclick="toggleFavorite(${originalIndex})">★</button>
-                <button class="gift-btn ${item.gift ? 'active' : ''}" onclick="toggleGift(${originalIndex})" title="優待切り替え">🎁</button>
                 ${item.name} <span class="code-badge">(${item.code})</span>
                 ${chanceBadgeHtml}
               </span>
@@ -709,18 +698,24 @@
               </div>
             </div>
             ${priceDisplay}
-            ${progressArea}
-            <div>
-              ${item.price ? `<span class="condition-tag">指値: ${item.price}円</span>` : ''}
-              ${item.rate ? `<span class="condition-tag">下落: -${item.rate}%以上</span>` : ''}
-              ${dividendDisplay}
-              ${item.gift ? `<span class="gift-tag">🎁 優待 <small>(${item.giftDate || ''})</small></span>` : ''}
+            
+            <div class="list-info-row">
+              <div class="tags-wrapper">
+                ${item.price ? `<span class="condition-tag">指値: ${item.price}円</span>` : ''}
+                ${item.rate ? `<span class="condition-tag">下落: -${item.rate}%</span>` : ''}
+                ${dividendDisplay}
+              </div>
+              ${progressArea}
             </div>
+
+            ${item.gift ? `<div style="margin-top:3px;"><span class="gift-tag">🎁 優待 <small>(${item.giftDate || ''})</small></span></div>` : ''}
             ${item.memo ? `<div class="memo-tag">📝 ${item.memo}</div>` : ''}
+            
             <div class="btn-group">
-              <button class="icon-btn" onclick="refreshSinglePrice(${originalIndex}, '${item.code}')" title="再取得">🔄</button>
-              <button class="icon-btn" onclick="editAlert(${originalIndex})" title="編集">✏️</button>
-              <button class="icon-btn" onclick="deleteAlert(${originalIndex})" title="削除">🗑️</button>
+              <button class="icon-btn ${item.gift ? 'gift-active' : ''}" onclick="toggleGift(${originalIndex})" title="優待切り替え">🎁 優待</button>
+              <button class="icon-btn" onclick="refreshSinglePrice(${originalIndex}, '${item.code}')" title="再取得">🔄 更新</button>
+              <button class="icon-btn" onclick="editAlert(${originalIndex})" title="編集">✏️ 編集</button>
+              <button class="icon-btn" onclick="deleteAlert(${originalIndex})" title="削除" style="color:#e53935;">🗑️ 削除</button>
             </div>
           </div>
         `;
@@ -731,7 +726,6 @@
       const item = alerts[index];
       if (!isFormOpen) toggleFormAccordion();
       document.getElementById('stockSearchInput').value = item.code;
-      document.getElementById('customNameInput').value = item.name;
       document.getElementById('targetPrice').value = item.price || '';
       document.getElementById('targetDropRate').value = item.rate || '';
       document.getElementById('memoInput').value = item.memo || '';
