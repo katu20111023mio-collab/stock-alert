@@ -62,7 +62,7 @@
     .preview-name-line { font-size: 0.8rem; font-weight: bold; color: #007aff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 170px; }
     .preview-price-line { font-size: 0.85rem; font-weight: bold; margin-top: 2px; display: flex; align-items: center; gap: 6px; }
 
-    /* アイコンだけの翻訳ボタン */
+    /* アイコンのみの翻訳ボタン */
     .trans-btn { background: none; border: 1px solid #007aff; color: #007aff; font-size: 0.9rem; width: 30px; height: 26px; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
     .trans-btn:hover { background: #007aff; color: white; }
 
@@ -109,10 +109,13 @@
     .progress-text { font-size: 0.68rem; color: var(--sub-text); }
 
     .tags-wrapper { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+    .condition-tag { font-size: 0.68rem; color: var(--sub-text); background: var(--preview-bg); padding: 1px 4px; border-radius: 4px; }
+    .dividend-tag { font-size: 0.68rem; color: #2e7d32; background: #e8f5e9; padding: 1px 4px; border-radius: 4px; font-weight: bold; }
     .gift-tag { font-size: 0.68rem; color: #d81b60; background: #fce4ec; padding: 1px 4px; border-radius: 4px; font-weight: bold; }
     .chance-badge { font-size: 0.65rem; color: #d97706; background: #fef3c7; padding: 1px 5px; border-radius: 10px; font-weight: bold; margin-left: 2px; }
     .party-badge { font-size: 0.7rem; background: #ff3b30; color: white; padding: 1px 5px; border-radius: 4px; font-weight: bold; margin-left: 4px; animation: bounce 1s infinite; }
     
+    body.dark-mode .dividend-tag { color: #81c784; background: #1b3820; }
     body.dark-mode .gift-tag { color: #f48fb1; background: #3a1c28; }
     body.dark-mode .chance-badge { color: #fcd34d; background: #451a03; }
 
@@ -128,6 +131,8 @@
     
     .btn-group { display: flex; gap: 4px; margin-top: 4px; justify-content: flex-end; align-items: center; }
     .icon-btn { padding: 3px 8px; font-size: 0.8rem; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; color: var(--text-color); display: inline-flex; align-items: center; justify-content: center; }
+    .icon-btn.gift-active { color: #d81b60; border-color: #fce4ec; background: #fce4ec; }
+    body.dark-mode .icon-btn.gift-active { color: #f48fb1; background: #3a1c28; border-color: #55273a; }
 
     .dark-toggle-btn { background: none; border: 1px solid var(--border-color); padding: 3px 6px; border-radius: 10px; font-size: 0.7rem; cursor: pointer; color: var(--text-color); }
 
@@ -154,7 +159,7 @@
   <div class="header-bar">
     <div class="header-title-box">
       <h2 style="font-size: 1.1rem;">📈 株価アラート</h2>
-      <span class="version-tag">ver 2.6.4</span>
+      <span class="version-tag">ver 2.6.5</span>
     </div>
     <button class="dark-toggle-btn" onclick="toggleDarkMode()">🌙 ダークモード</button>
   </div>
@@ -308,7 +313,7 @@
       <div id="startupPopupList" class="popup-item-list"></div>
       <div class="modal-btn-group">
         <button class="modal-btn modal-btn-cancel" onclick="minimizeStartupPopup()">小さくする</button>
-        <button class="modal-btn modal-btn-submit" onclick="closeStartupPopupComplete()">閉じる</button>
+        <button class="modal-btn modal-btn-submit" onclick="closeStartupPopup完全に()">閉じる</button>
       </div>
     </div>
   </div>
@@ -346,381 +351,317 @@
         .replace(/CORP/gi, "")
         .replace(/HOLDINGS/gi, "ホールディングス")
         .replace(/GROUP/gi, "グループ")
+        .replace(/\./g, "")
         .trim();
       return cleaned || rawName;
     }
 
     let alerts = JSON.parse(localStorage.getItem('stock_alerts') || '[]');
-    let isGlobalNotify = JSON.parse(localStorage.getItem('stock_global_notify') ?? 'true');
-    let editingCode = null;
-    let previewData = null;
-    let darkMode = JSON.parse(localStorage.getItem('stock_dark_mode') || 'false');
+    let isGlobalNotifyOn = localStorage.getItem('global_notify') === 'true';
 
-    if (darkMode) {
-      document.body.classList.add('dark-mode');
-    }
+    let editingIndex = null;
+    let priceCache = {};
+    let currentFetchedStock = null;
+    let searchTimer = null;
+    let isFormOpen = false;
+    let pendingDuplicateIndex = null;
+    let triggeredStockList = [];
 
-    function toggleDarkMode() {
-      darkMode = !darkMode;
-      document.body.classList.toggle('dark-mode', darkMode);
-      localStorage.setItem('stock_dark_mode', JSON.stringify(darkMode));
-    }
+    window.onload = async () => {
+      if (localStorage.getItem('dark_mode') === 'true') {
+        document.body.classList.add('dark-mode');
+      }
+      initNotificationBtn();
+      updateLastOpenTime();
+      checkMarketTimeAndMonitor();
+      await refreshAllPrices();
+      checkStartupTriggers();
+      setInterval(checkMarketTimeAndMonitor, 30000);
+    };
 
-    function toggleFormAccordion() {
-      const body = document.getElementById('formBody');
-      const isHidden = body.style.display === 'none';
-      body.style.display = isHidden ? 'block' : 'none';
+    function initNotificationBtn() {
+      const btn = document.getElementById('globalNotifyBtn');
+      if (isGlobalNotifyOn && ('Notification' in window) && Notification.permission === 'granted') {
+        btn.innerText = '🔔 通知: ON';
+        btn.classList.remove('off');
+      } else {
+        isGlobalNotifyOn = false;
+        btn.innerText = '🔕 通知: OFF';
+        btn.classList.add('off');
+      }
     }
 
     function toggleGlobalNotification() {
-      isGlobalNotify = !isGlobalNotify;
-      localStorage.setItem('stock_global_notify', JSON.stringify(isGlobalNotify));
-      updateGlobalNotifyBtn();
-    }
+      if (!('Notification' in window)) {
+        alert('このブラウザはプッシュ通知に対応していません。');
+        return;
+      }
 
-    function updateGlobalNotifyBtn() {
-      const btn = document.getElementById('globalNotifyBtn');
-      if (isGlobalNotify) {
-        btn.className = 'notify-btn';
-        btn.innerText = '🔔 通知: ON';
+      if (Notification.permission === 'granted') {
+        isGlobalNotifyOn = !isGlobalNotifyOn;
+        localStorage.setItem('global_notify', isGlobalNotifyOn);
+        initNotificationBtn();
+        if (isGlobalNotifyOn) {
+          sendNotification('通知をONにしました', '設定条件に到達した際にお知らせします。');
+        }
+      } else if (Notification.permission !== 'denied') {
+        Notification.requestPermission().then(p => {
+          if (p === 'granted') {
+            isGlobalNotifyOn = true;
+            localStorage.setItem('global_notify', true);
+            initNotificationBtn();
+            sendNotification('通知をONにしました', '設定条件に到達した際にお知らせします。');
+          } else {
+            alert('通知が拒否されました。ブラウザの設定から許可してください。');
+          }
+        });
       } else {
-        btn.className = 'notify-btn off';
-        btn.innerText = '🔕 通知: OFF';
+        alert('通知がブロックされています。ブラウザの設定で通知を許可してください。');
       }
     }
 
-    // 市場時間判定ロジックの復活
-    function checkMarketTime() {
+    function sendNotification(title, body) {
+      if ('Notification' in window && Notification.permission === 'granted') {
+        new Notification(title, { body: body, icon: 'https://finance.yahoo.co.jp/favicon.ico' });
+      }
+    }
+
+    function toggleFormAccordion() {
+      isFormOpen = !isFormOpen;
+      const body = document.getElementById('formBody');
+      body.style.display = isFormOpen ? 'block' : 'none';
+    }
+
+    function toggleDarkMode() {
+      document.body.classList.toggle('dark-mode');
+      localStorage.setItem('dark_mode', document.body.classList.contains('dark-mode'));
+    }
+
+    function updateLastOpenTime() {
+      const lastTime = localStorage.getItem('last_open_time');
+      const element = document.getElementById('lastOpenTime');
+      if (lastTime) element.innerText = `前回の起動: ${lastTime}`;
+
       const now = new Date();
-      const day = now.getDay(); // 0:日, 6:土
-      const hour = now.getHours();
-      const minute = now.getMinutes();
-      const timeNum = hour * 100 + minute;
+      const formatted = `${now.getFullYear()}/${(now.getMonth()+1).toString().padStart(2, '0')}/${now.getDate().toString().padStart(2, '0')} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+      localStorage.setItem('last_open_time', formatted);
+    }
 
-      const isWeekday = (day >= 1 && day <= 5);
-      const isOpenTime = (isWeekday && timeNum >= 900 && timeNum <= 1500);
+    function saveToStorage() {
+      localStorage.setItem('stock_alerts', JSON.stringify(alerts));
+    }
 
-      const dot = document.getElementById('statusDot');
-      const text = document.getElementById('statusText');
-      const marketTimeText = document.getElementById('marketTimeText');
-      const nextOpenText = document.getElementById('nextOpenTimeText');
+    function isMarketOpen() {
+      const now = new Date();
+      const day = now.getDay();
+      if (day === 0 || day === 6) return false;
+      const time = now.getHours() * 100 + now.getMinutes();
+      return (time >= 900 && time <= 1130) || (time >= 1230 && time <= 1530);
+    }
 
-      if (isOpenTime) {
-        dot.className = 'status-dot active';
-        text.innerText = '監視中 (市場営業中)';
-        marketTimeText.innerText = '市場: 営業中';
-        nextOpenText.innerText = '次回営業: 営業中';
-      } else {
-        dot.className = 'status-dot';
-        text.innerText = '監視停止中 (時間外)';
-        marketTimeText.innerText = '市場: 営業時間外';
-        nextOpenText.innerText = '次回営業: 本日 09:00〜';
+    function getNextMarketOpenText() {
+      const now = new Date();
+      const day = now.getDay();
+      const time = now.getHours() * 100 + now.getMinutes();
+
+      if (day >= 1 && day <= 5 && time < 900) return "次回営業: 本日 09:00〜";
+      if (day >= 1 && day <= 5 && time >= 1130 && time < 1230) return "次回営業: 本日 12:30〜（後場）";
+
+      let nextDate = new Date(now);
+      nextDate.setDate(nextDate.getDate() + 1);
+      while (nextDate.getDay() === 0 || nextDate.getDay() === 6) {
+        nextDate.setDate(nextDate.getDate() + 1);
+      }
+
+      const isTomorrow = (nextDate.getDate() === now.getDate() + 1);
+      const daysStr = ["日", "月", "火", "水", "木", "金", "土"];
+      const dateLabel = isTomorrow ? "明日" : `${nextDate.getMonth() + 1}/${nextDate.getDate()}(${daysStr[nextDate.getDay()]})`;
+      return `次回営業: ${dateLabel} 09:00〜`;
+    }
+
+    function checkMarketTimeAndMonitor() {
+      const isOpen = isMarketOpen();
+      document.getElementById('statusDot').className = isOpen ? "status-dot active" : "status-dot";
+      document.getElementById('statusText').innerText = isOpen ? "リアルタイム監視中" : "監視停止中（時間外）";
+      document.getElementById('marketTimeText').innerText = isOpen ? "市場：営業時間内" : "市場：営業時間外";
+      document.getElementById('nextOpenTimeText').innerText = isOpen ? "次回営業: 取引進行中" : getNextMarketOpenText();
+    }
+
+    async function fetchStockQuote(code) {
+      if (!code || !/^\d{4}$/.test(code)) return null;
+      try {
+        const res = await fetch(`${MY_SERVER_URL}?code=${code}`);
+        if (!res.ok) return null;
+        const data = await res.json();
+        if (!data.chart || !data.chart.result || !data.chart.result[0]) return null;
+
+        const meta = data.chart.result[0].meta;
+        const price = meta.regularMarketPrice;
+        const prevClose = meta.chartPreviousClose || meta.previousClose;
+        const changeNum = parseFloat((price - prevClose).toFixed(2));
+        const changePercent = parseFloat(((changeNum / prevClose) * 100).toFixed(2));
+        
+        let rawName = meta.shortName || meta.symbol.replace('.T', '');
+        let name = NAME_FIX_MAP[code] || rawName;
+        
+        const dividendRate = meta.trailingAnnualDividendRate || null;
+        let dividendYield = null;
+        if (dividendRate && price > 0) {
+          dividendYield = parseFloat(((dividendRate / price) * 100).toFixed(2));
+        }
+
+        return { code, name, rawName, price, changeNum, changePercent, dividendRate, dividendYield };
+      } catch (e) {
+        return null;
       }
     }
 
-    let searchTimer = null;
     function onCodeInput() {
       clearTimeout(searchTimer);
       const code = document.getElementById('stockSearchInput').value.trim();
+      const nameLine = document.getElementById('previewName');
+      const priceLine = document.getElementById('previewPrice');
+      const transBtn = document.getElementById('translateBtn');
+
       if (code.length !== 4) {
-        resetPreview();
+        nameLine.innerText = '4桁のコードを入力';
+        nameLine.style.color = 'var(--sub-text)';
+        priceLine.innerHTML = '株価等が表示されます';
+        transBtn.style.display = 'none';
+        resetSubmitBtn();
         return;
       }
-      document.getElementById('previewName').innerText = "検索中...";
-      document.getElementById('previewName').style.color = "var(--sub-text)";
-      document.getElementById('translateBtn').style.display = "none";
-      document.getElementById('previewPrice').innerText = "データを取得しています...";
-      
-      searchTimer = setTimeout(() => fetchStockPreview(code), 400);
-    }
 
-    function resetPreview() {
-      previewData = null;
-      document.getElementById('previewName').innerText = "4桁のコードを入力";
-      document.getElementById('previewName').style.color = "var(--sub-text)";
-      document.getElementById('translateBtn').style.display = "none";
-      document.getElementById('previewPrice').innerText = "株価等が表示されます";
-      document.getElementById('submitBtn').disabled = true;
-      document.getElementById('submitBtn').innerText = "銘柄コードを入力してください";
-    }
+      nameLine.innerText = '情報を取得中...';
+      nameLine.style.color = '#007aff';
+      priceLine.innerHTML = '';
+      transBtn.style.display = 'none';
 
-    async function fetchStockPreview(code) {
-      try {
-        const res = await fetch(`${MY_SERVER_URL}?code=${code}`);
-        const data = await res.json();
-        if (data.error || !data.price) {
-          document.getElementById('previewName').innerText = "見つかりません";
-          document.getElementById('previewPrice').innerText = "正しいコードを入力してください";
-          document.getElementById('submitBtn').disabled = true;
-          return;
-        }
+      searchTimer = setTimeout(async () => {
+        const stockData = await fetchStockQuote(code);
+        if (stockData) {
+          currentFetchedStock = stockData;
+          nameLine.innerText = `${stockData.name} (${stockData.code})`;
+          priceLine.innerHTML = createYfHTML(stockData);
+          transBtn.style.display = 'inline-flex';
 
-        previewData = data;
-        let displayName = data.name;
-        if (NAME_FIX_MAP[code]) {
-          displayName = NAME_FIX_MAP[code];
-          document.getElementById('translateBtn').style.display = "none";
+          const submitBtn = document.getElementById('submitBtn');
+          submitBtn.disabled = false;
+          submitBtn.innerText = editingIndex !== null ? '変更を保存する' : 'アラートを追加する';
         } else {
-          document.getElementById('translateBtn').style.display = "inline-flex";
+          currentFetchedStock = null;
+          nameLine.innerText = '取得エラー';
+          nameLine.style.color = '#e53935';
+          priceLine.innerHTML = '正しい4桁コードを確認してください';
+          transBtn.style.display = 'none';
+          resetSubmitBtn();
         }
-
-        document.getElementById('previewName').innerText = displayName;
-        document.getElementById('previewName').style.color = "#007aff";
-
-        const changeClass = data.change >= 0 ? "yf-change-up" : "yf-change-down";
-        const iconClass = data.change >= 0 ? "yf-icon-up" : "yf-icon-down";
-        const sign = data.change >= 0 ? "+" : "";
-        
-        document.getElementById('previewPrice').innerHTML = `
-          <div class="yf-price-box">
-            <span class="${iconClass}">${data.price}円</span>
-            <span class="${changeClass}">${sign}${data.change} (${sign}${data.changePercent}%)</span>
-          </div>
-        `;
-
-        const submitBtn = document.getElementById('submitBtn');
-        submitBtn.disabled = false;
-        submitBtn.innerText = editingCode ? "変更を保存する" : "アラートを追加する";
-      } catch (err) {
-        document.getElementById('previewName').innerText = "通信エラー";
-        document.getElementById('previewPrice').innerText = "再試行してください";
-      }
+      }, 150);
     }
 
     function translateStockName() {
-      if (!previewData) return;
-      const code = document.getElementById('stockSearchInput').value.trim();
-      const translated = getManualTranslation(code, previewData.name);
-      document.getElementById('previewName').innerText = translated;
-      document.getElementById('translateBtn').style.display = "none";
+      if (!currentFetchedStock) return;
+      const betterName = getManualTranslation(currentFetchedStock.code, currentFetchedStock.rawName);
+      currentFetchedStock.name = betterName;
+      document.getElementById('previewName').innerText = `${betterName} (${currentFetchedStock.code})`;
+      document.getElementById('translateBtn').style.display = 'none';
     }
 
-    function handleFormSubmit(isOverwrite) {
-      const code = document.getElementById('stockSearchInput').value.trim();
-      if (code.length !== 4 || !previewData) return;
-
-      const targetPrice = parseFloat(document.getElementById('targetPrice').value) || null;
-      const targetDropRate = parseFloat(document.getElementById('targetDropRate').value) || null;
-      const isFavorite = document.getElementById('regFavCheckbox').checked;
-      const isGift = document.getElementById('regGiftCheckbox').checked;
-      const memo = document.getElementById('memoInput').value.trim();
-      const displayName = document.getElementById('previewName').innerText;
-
-      const existingIndex = alerts.findIndex(item => item.code === code);
-      if (existingIndex !== -1 && !isOverwrite && editingCode !== code) {
-        showCompareModal(alerts[existingIndex], {
-          price: targetPrice,
-          rate: targetDropRate,
-          favorite: isFavorite,
-          gift: isGift,
-          memo: memo
-        });
-        return;
-      }
-
-      closeCompareModal();
-
-      const newItem = {
-        code: code,
-        name: displayName,
-        price: previewData.price,
-        change: previewData.change,
-        changePercent: previewData.changePercent,
-        targetPrice: targetPrice,
-        targetDropRate: targetDropRate,
-        favorite: isFavorite,
-        gift: isGift,
-        memo: memo,
-        enabled: true,
-        createdAt: existingIndex !== -1 ? alerts[existingIndex].createdAt : Date.now()
-      };
-
-      if (existingIndex !== -1) {
-        alerts[existingIndex] = newItem;
-      } else {
-        alerts.push(newItem);
-      }
-
-      localStorage.setItem('stock_alerts', JSON.stringify(alerts));
-      resetForm();
-      renderList();
-      toggleFormAccordion();
+    function resetSubmitBtn() {
+      const submitBtn = document.getElementById('submitBtn');
+      submitBtn.disabled = true;
+      submitBtn.innerText = '銘柄コードを入力してください';
+      currentFetchedStock = null;
     }
 
-    function showCompareModal(oldItem, newItem) {
-      document.getElementById('oldPriceVal').innerText = oldItem.targetPrice ? `${oldItem.targetPrice}円` : 'なし';
-      document.getElementById('newPriceVal').innerText = newItem.price ? `${newItem.price}円` : 'なし';
+    function createYfHTML(quote) {
+      const isUp = quote.changeNum >= 0;
+      const iconClass = isUp ? 'yf-icon-up' : 'yf-icon-down';
+      const changeClass = isUp ? 'yf-change-up' : 'yf-change-down';
+      const arrow = isUp ? '↑' : '↓';
 
-      document.getElementById('oldRateVal').innerText = oldItem.targetDropRate ? `${oldItem.targetDropRate}%` : 'なし';
-      document.getElementById('newRateVal').innerText = newItem.rate ? `${newItem.rate}%` : 'なし';
-
-      document.getElementById('oldFavVal').innerText = oldItem.favorite ? '⭐ あり' : 'なし';
-      document.getElementById('newFavVal').innerText = newItem.favorite ? '⭐ あり' : 'なし';
-
-      document.getElementById('oldGiftVal').innerText = oldItem.gift ? '🎁 あり' : 'なし';
-      document.getElementById('newGiftVal').innerText = newItem.gift ? '🎁 あり' : 'なし';
-
-      document.getElementById('oldMemoVal').innerText = oldItem.memo || 'なし';
-      document.getElementById('newMemoVal').innerText = newItem.memo || 'なし';
-
-      document.getElementById('compareModal').style.display = 'flex';
-    }
-
-    function closeCompareModal() {
-      document.getElementById('compareModal').style.display = 'none';
-    }
-
-    function resetForm() {
-      document.getElementById('stockSearchInput').value = '';
-      document.getElementById('targetPrice').value = '';
-      document.getElementById('targetDropRate').value = '';
-      document.getElementById('regFavCheckbox').checked = false;
-      document.getElementById('regGiftCheckbox').checked = false;
-      document.getElementById('memoInput').value = '';
-      editingCode = null;
-      document.getElementById('formTitle').innerText = "銘柄の登録";
-      resetPreview();
-    }
-
-    // 購入チャンススコア計算ロジックの復活
-    function calculateChanceScore(item) {
-      if (!item.price) return 0;
-      let score = 50;
-      if (item.targetPrice && item.price <= item.targetPrice) score += 30;
-      if (item.targetDropRate && item.changePercent <= -item.targetDropRate) score += 20;
-      if (item.favorite) score += 10;
-      return score;
-    }
-
-    function renderList() {
-      const listContainer = document.getElementById('alertList');
-      const sortVal = document.getElementById('sortSelect').value;
-      const minPrice = parseFloat(document.getElementById('minPriceInput').value) || 0;
-      const maxPrice = parseFloat(document.getElementById('maxPriceInput').value) || Infinity;
-
-      let filtered = alerts.filter(item => {
-        if (!item.price) return true;
-        return item.price >= minPrice && item.price <= maxPrice;
-      });
-
-      filtered.sort((a, b) => {
-        if (sortVal === 'chance') return calculateChanceScore(b) - calculateChanceScore(a);
-        if (sortVal === 'favorite') return (b.favorite ? 1 : 0) - (a.favorite ? 1 : 0);
-        if (sortVal === 'not-favorite') return (a.favorite ? 1 : 0) - (b.favorite ? 1 : 0);
-        if (sortVal === 'gift') return (b.gift ? 1 : 0) - (a.gift ? 1 : 0);
-        if (sortVal === 'priceDesc') return (b.price || 0) - (a.price || 0);
-        if (sortVal === 'priceAsc') return (a.price || 0) - (b.price || 0);
-        if (sortVal === 'code') return a.code.localeCompare(b.code);
-        return 0;
-      });
-
-      if (filtered.length === 0) {
-        listContainer.innerHTML = '<div style="text-align:center; color:var(--sub-text); padding:20px; font-size:0.8rem;">登録されている銘柄はありません</div>';
-        return;
-      }
-
-      listContainer.innerHTML = filtered.map(item => {
-        const score = calculateChanceScore(item);
-        const changeClass = (item.change || 0) >= 0 ? "yf-change-up" : "yf-change-down";
-        const sign = (item.change || 0) >= 0 ? "+" : "";
-
-        return `
-          <div class="item ${item.favorite ? 'favorite' : ''}">
-            <div class="item-header">
-              <div class="item-title">
-                <button class="star-btn ${item.favorite ? 'active' : ''}" onclick="toggleFavorite('${item.code}')">★</button>
-                ${item.name} <span class="code-badge">(${item.code})</span>
-                <span class="chance-badge">🔥 ${score}pt</span>
-              </div>
-              <div class="link-group">
-                <a href="https://finance.yahoo.co.jp/quote/${item.code}.T" target="_blank" class="yf-app-btn" title="Yahoo!ファイナンスで開く">y!</a>
-                <button class="toggle-alert-btn" onclick="toggleItemActive('${item.code}')" style="font-size:0.85rem;" title="監視切替">${item.enabled ? '🔔' : '🔕'}</button>
-              </div>
-            </div>
-            <div class="price-row-wrapper">
-              <div style="font-size:1.05rem; font-weight:bold;">${item.price ? item.price + '円' : '取得中...'} 
-                <span class="${changeClass}" style="font-size:0.75rem; margin-left:6px;">${sign}${item.change || 0} (${sign}${item.changePercent || 0}%)</span>
-              </div>
-              <div class="tags-wrapper">
-                ${item.gift ? '<span class="gift-tag">🎁 優待</span>' : ''}
-              </div>
-            </div>
-            <div class="list-info-row">
-              <div style="font-size:0.72rem; color:var(--sub-text);">
-                ${item.targetPrice ? `指値: ${item.targetPrice}円` : ''} 
-                ${item.targetDropRate ? `下落: -${item.targetDropRate}%` : ''}
-              </div>
-            </div>
-            ${item.memo ? `<div class="memo-tag">${item.memo}</div>` : ''}
-            <div class="btn-group">
-              <button class="icon-btn" onclick="editItem('${item.code}')" title="編集">✏️</button>
-              <button class="icon-btn" onclick="deleteItem('${item.code}')" title="削除">🗑️</button>
-            </div>
-          </div>
-        `;
-      }).join('');
-    }
-
-    function toggleFavorite(code) {
-      const target = alerts.find(i => i.code === code);
-      if (target) {
-        target.favorite = !target.favorite;
-        localStorage.setItem('stock_alerts', JSON.stringify(alerts));
-        renderList();
-      }
-    }
-
-    function toggleItemActive(code) {
-      const target = alerts.find(i => i.code === code);
-      if (target) {
-        target.enabled = !target.enabled;
-        localStorage.setItem('stock_alerts', JSON.stringify(alerts));
-        renderList();
-      }
-    }
-
-    function deleteItem(code) {
-      if (!confirm("この銘柄のアラートを削除しますか？")) return;
-      alerts = alerts.filter(i => i.code !== code);
-      localStorage.setItem('stock_alerts', JSON.stringify(alerts));
-      renderList();
-    }
-
-    function editItem(code) {
-      const target = alerts.find(i => i.code === code);
-      if (!target) return;
-      editingCode = code;
-      document.getElementById('formTitle').innerText = "アラートの編集";
-      document.getElementById('stockSearchInput').value = target.code;
-      document.getElementById('targetPrice').value = target.targetPrice || '';
-      document.getElementById('targetDropRate').value = target.targetDropRate || '';
-      document.getElementById('regFavCheckbox').checked = !!target.favorite;
-      document.getElementById('regGiftCheckbox').checked = !!target.gift;
-      document.getElementById('memoInput').value = target.memo || '';
-      
-      const body = document.getElementById('formBody');
-      body.style.display = 'block';
-      fetchStockPreview(target.code);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return `
+        <div class="yf-price-box">
+          <div class="${iconClass}">${arrow}</div>
+          <span style="font-size:0.9rem;">${quote.price.toLocaleString()}円</span>
+          <span class="${changeClass}">${isUp ? '+' : ''}${quote.changeNum} (${isUp ? '+' : ''}${quote.changePercent}%)</span>
+        </div>
+      `;
     }
 
     async function manualRefresh() {
       const btn = document.getElementById('refreshBtn');
-      btn.innerText = "更新中...";
-      for (let item of alerts) {
-        try {
-          const res = await fetch(`${MY_SERVER_URL}?code=${item.code}`);
-          const data = await res.json();
-          if (data && data.price) {
-            item.price = data.price;
-            item.change = data.change;
-            item.changePercent = data.changePercent;
-          }
-        } catch(e) {}
-      }
-      localStorage.setItem('stock_alerts', JSON.stringify(alerts));
+      btn.disabled = true;
+      btn.innerText = '🔄 更新中...';
+      await refreshAllPrices();
+      checkStartupTriggers();
+      btn.disabled = false;
+      btn.innerText = '🔄 一括更新';
+    }
+
+    async function refreshSinglePrice(index, code) {
+      priceCache[code] = null;
       renderList();
-      btn.innerText = "🔄 一括更新";
+      const quote = await fetchStockQuote(code);
+      if (quote) {
+        if (alerts[index].name === quote.rawName && NAME_FIX_MAP[code]) {
+          alerts[index].name = NAME_FIX_MAP[code];
+        }
+        priceCache[code] = quote;
+        saveToStorage();
+      } else {
+        priceCache[code] = { error: true };
+      }
+      renderList();
+    }
+
+    async function refreshAllPrices() {
+      triggeredStockList = [];
+      for (let i = 0; i < alerts.length; i++) {
+        const item = alerts[i];
+        const quote = await fetchStockQuote(item.code);
+        if (quote) {
+          priceCache[item.code] = quote;
+          saveToStorage();
+          
+          if (!item.disabled) {
+            let isTriggered = false;
+            let triggers = [];
+            if (item.price && quote.price <= parseFloat(item.price)) {
+              isTriggered = true;
+              triggers.push(`指値(${item.price}円以下)達成: 現在${quote.price}円`);
+            }
+            if (item.rate && quote.changePercent <= -Math.abs(parseFloat(item.rate))) {
+              isTriggered = true;
+              triggers.push(`下落率(-${item.rate}%以上)達成: 現在${quote.changePercent}%`);
+            }
+            if (isTriggered) {
+              triggeredStockList.push({ name: item.name, code: item.code, details: triggers.join(' / ') });
+            }
+          }
+        } else {
+          priceCache[item.code] = { error: true };
+        }
+      }
+      renderList();
+    }
+
+    function checkStartupTriggers() {
+      if (triggeredStockList.length > 0) {
+        const listContainer = document.getElementById('startupPopupList');
+        listContainer.innerHTML = triggeredStockList.map(t => `
+          <div style="margin-bottom:6px; border-bottom:1px dashed var(--border-color); padding-bottom:4px;">
+            <strong>${t.name} (${t.code})</strong><br>
+            <span style="color:#ff3b30; font-size:0.7rem;">🎉 ${t.details}</span>
+          </div>
+        `).join('');
+        document.getElementById('startupPopupModal').style.display = 'flex';
+
+        if (isGlobalNotifyOn) {
+          const summaryNames = triggeredStockList.map(t => t.name).join(', ');
+          sendNotification('🚨 条件達成銘柄があります！', `${summaryNames} が設定条件に到達しました。`);
+        }
+      }
     }
 
     function minimizeStartupPopup() {
@@ -728,19 +669,329 @@
       document.getElementById('minimizedBanner').style.display = 'flex';
     }
 
-    function closeStartupPopupComplete() {
+    function closeStartupPopup完全に() {
       document.getElementById('startupPopupModal').style.display = 'none';
     }
 
     function reopenStartupPopup() {
-      document.getElementById('startupPopupModal').style.display = 'flex';
       document.getElementById('minimizedBanner').style.display = 'none';
+      document.getElementById('startupPopupModal').style.display = 'flex';
     }
 
-    // 初期化実行
-    checkMarketTime();
-    updateGlobalNotifyBtn();
-    renderList();
+    function handleFormSubmit(forceOverwrite) {
+      if (!currentFetchedStock) return;
+
+      const existingIndex = alerts.findIndex((item, idx) => item.code === currentFetchedStock.code && idx !== editingIndex);
+
+      if (existingIndex !== -1 && !forceOverwrite && editingIndex === null) {
+        pendingDuplicateIndex = existingIndex;
+        showCompareModal(existingIndex);
+        return;
+      }
+
+      const finalName = currentFetchedStock.name;
+      const price = document.getElementById('targetPrice').value;
+      const rate = document.getElementById('targetDropRate').value;
+      const memo = document.getElementById('memoInput').value;
+      const isFav = document.getElementById('regFavCheckbox').checked;
+      const isGift = document.getElementById('regGiftCheckbox').checked;
+
+      let giftDateVal = null;
+      if (isGift) {
+        const targetIdx = editingIndex !== null ? editingIndex : (pendingDuplicateIndex !== null ? pendingDuplicateIndex : -1);
+        if (targetIdx !== -1 && alerts[targetIdx].giftDate) {
+          giftDateVal = alerts[targetIdx].giftDate;
+        } else {
+          const now = new Date();
+          giftDateVal = `${String(now.getFullYear()).slice(-2)}/${String(now.getMonth() + 1).padStart(2, '0')}`;
+        }
+      }
+
+      const alertData = { 
+        name: finalName, 
+        code: currentFetchedStock.code, 
+        price: price || null, 
+        rate: rate || null,
+        memo: memo || '',
+        favorite: isFav,
+        gift: isGift,
+        giftDate: giftDateVal,
+        disabled: editingIndex !== null ? (alerts[editingIndex].disabled || false) : (pendingDuplicateIndex !== null ? (alerts[pendingDuplicateIndex].disabled || false) : false)
+      };
+
+      const targetEditIdx = editingIndex !== null ? editingIndex : (pendingDuplicateIndex !== null ? pendingDuplicateIndex : null);
+
+      if (targetEditIdx !== null) {
+        alerts[targetEditIdx] = alertData;
+      } else {
+        alerts.push(alertData);
+      }
+
+      editingIndex = null;
+      pendingDuplicateIndex = null;
+      closeCompareModal();
+      document.getElementById('formTitle').innerText = '銘柄の登録';
+
+      saveToStorage();
+      clearForm();
+      if (isFormOpen) toggleFormAccordion();
+      refreshAllPrices();
+    }
+
+    function showCompareModal(existIdx) {
+      const oldItem = alerts[existIdx];
+      const newPrice = document.getElementById('targetPrice').value || '-';
+      const newRate = document.getElementById('targetDropRate').value ? `-${document.getElementById('targetDropRate').value}%` : '-';
+      const newFav = document.getElementById('regFavCheckbox').checked ? '⭐ あり' : 'なし';
+      const newGift = document.getElementById('regGiftCheckbox').checked ? '🎁 あり' : 'なし';
+      const newMemo = document.getElementById('memoInput').value || '-';
+
+      const oldPrice = oldItem.price ? `${oldItem.price}円` : '-';
+      const oldRate = oldItem.rate ? `-${oldItem.rate}%` : '-';
+      const oldFav = oldItem.favorite ? '⭐ あり' : 'なし';
+      const oldGift = oldItem.gift ? '🎁 あり' : 'なし';
+      const oldMemo = oldItem.memo || '-';
+
+      document.getElementById('oldPriceVal').innerText = oldPrice;
+      document.getElementById('newPriceVal').innerText = newPrice !== '-' ? `${newPrice}円` : '-';
+      document.getElementById('oldRateVal').innerText = oldRate;
+      document.getElementById('newRateVal').innerText = newRate;
+      document.getElementById('oldFavVal').innerText = oldFav;
+      document.getElementById('newFavVal').innerText = newFav;
+      document.getElementById('oldGiftVal').innerText = oldGift;
+      document.getElementById('newGiftVal').innerText = newGift;
+      document.getElementById('oldMemoVal').innerText = oldMemo;
+      document.getElementById('newMemoVal').innerText = newMemo;
+
+      document.getElementById('compareModal').style.display = 'flex';
+    }
+
+    function closeCompareModal() {
+      document.getElementById('compareModal').style.display = 'none';
+      pendingDuplicateIndex = null;
+    }
+
+    function clearForm() {
+      document.getElementById('stockSearchInput').value = '';
+      document.getElementById('targetPrice').value = '';
+      document.getElementById('targetDropRate').value = '';
+      document.getElementById('memoInput').value = '';
+      document.getElementById('regFavCheckbox').checked = false;
+      document.getElementById('regGiftCheckbox').checked = false;
+      document.getElementById('previewName').innerText = '4桁のコードを入力';
+      document.getElementById('previewName').style.color = 'var(--sub-text)';
+      document.getElementById('previewPrice').innerHTML = '株価等が表示されます';
+      document.getElementById('translateBtn').style.display = 'none';
+      resetSubmitBtn();
+    }
+
+    function toggleFavorite(index) {
+      alerts[index].favorite = !alerts[index].favorite;
+      saveToStorage();
+      renderList();
+    }
+
+    function toggleGift(index) {
+      alerts[index].gift = !alerts[index].gift;
+      if (alerts[index].gift && !alerts[index].giftDate) {
+        const now = new Date();
+        alerts[index].giftDate = `${String(now.getFullYear()).slice(-2)}/${String(now.getMonth() + 1).padStart(2, '0')}`;
+      }
+      saveToStorage();
+      renderList();
+    }
+
+    function toggleAlertActive(index) {
+      alerts[index].disabled = !alerts[index].disabled;
+      saveToStorage();
+      renderList();
+    }
+
+    function calculateChanceScore(item, quote) {
+      if (!quote || quote.error) return 0;
+      let score = 50;
+      if (item.price) {
+        const target = parseFloat(item.price);
+        const current = quote.price;
+        if (current <= target) score += 40;
+        else {
+          const diffRatio = (current - target) / target;
+          if (diffRatio < 0.05) score += 30;
+          else if (diffRatio < 0.10) score += 20;
+          else if (diffRatio < 0.20) score += 10;
+        }
+      }
+      if (quote.changePercent < 0) {
+        score += Math.min(Math.abs(quote.changePercent) * 5, 20);
+      }
+      if (item.favorite) score += 10;
+      return Math.min(Math.round(score), 100);
+    }
+
+    function renderList() {
+      const listDiv = document.getElementById('alertList');
+      if (alerts.length === 0) {
+        listDiv.innerHTML = '<div style="color:#999; font-size:0.8rem; padding:10px 0;">登録されているアラートはありません。</div>';
+        return;
+      }
+
+      const sortType = document.getElementById('sortSelect').value;
+      const minPrice = parseFloat(document.getElementById('minPriceInput').value) || 0;
+      const maxPrice = parseFloat(document.getElementById('maxPriceInput').value) || Infinity;
+
+      let filteredAlerts = alerts.map((item, index) => {
+        const quote = priceCache[item.code];
+        const chanceScore = calculateChanceScore(item, quote);
+        let percent = 0;
+        let isTriggered = false;
+
+        if (quote && !quote.error) {
+          if (item.price) {
+            const target = parseFloat(item.price);
+            const current = quote.price;
+            percent = Math.min(Math.max((target / current) * 100, 0), 100);
+            if (current <= target) isTriggered = true;
+          }
+          if (item.rate && quote.changePercent <= -Math.abs(parseFloat(item.rate))) {
+            isTriggered = true;
+          }
+        }
+        return { item, originalIndex: index, quote, chanceScore, percent, isTriggered };
+      }).filter(({ quote }) => {
+        if (!quote || quote.error) return true; 
+        return quote.price >= minPrice && quote.price <= maxPrice;
+      });
+
+      filteredAlerts.sort((a, b) => {
+        if (sortType === 'chance') return b.chanceScore - a.chanceScore;
+        if (sortType === 'favorite') return (b.item.favorite ? 1 : 0) - (a.item.favorite ? 1 : 0);
+        if (sortType === 'not-favorite') return (b.item.favorite ? 0 : 1) - (a.item.favorite ? 0 : 1);
+        if (sortType === 'target-close') return b.percent - a.percent;
+        if (sortType === 'gift') return (b.item.gift ? 1 : 0) - (a.item.gift ? 1 : 0);
+        if (sortType === 'code') return a.item.code.localeCompare(b.item.code);
+        
+        const qA = a.quote;
+        const qB = b.quote;
+        if (sortType === 'priceDesc' || sortType === 'priceAsc') {
+          const pA = (qA && !qA.error) ? qA.price : 0;
+          const pB = (qB && !qB.error) ? qB.price : 0;
+          return sortType === 'priceDesc' ? pB - pA : pA - pB;
+        }
+        if (sortType === 'drop' || sortType === 'rise') {
+          const valA = (qA && !qA.error) ? qA.changePercent : 0;
+          const valB = (qB && !qB.error) ? qB.changePercent : 0;
+          return sortType === 'drop' ? valA - valB : valB - valA;
+        }
+        return a.originalIndex - b.originalIndex;
+      });
+
+      if (filteredAlerts.length === 0) {
+        listDiv.innerHTML = '<div style="color:#999; font-size:0.8rem; padding:10px 0;">条件に該当する銘柄はありません。</div>';
+        return;
+      }
+
+      listDiv.innerHTML = filteredAlerts.map(({ item, originalIndex, quote, chanceScore, percent, isTriggered }) => {
+        const yfWebUrl = `https://finance.yahoo.co.jp/quote/${item.code}.T`;
+        
+        let priceDisplay = '<div style="font-size:0.75rem; color:#888; margin-top:3px;">株価を取得中...</div>';
+        let progressArea = '';
+        let dividendDisplay = '';
+        let giftDisplay = '';
+        let chanceBadgeHtml = `<span class="chance-badge">🔥 ${chanceScore}pt</span>`;
+        let partyBadgeHtml = (isTriggered && !item.disabled) ? `<span class="party-badge">🎉 到達!</span>` : '';
+
+        if (quote && !quote.error) {
+          priceDisplay = createYfHTML(quote);
+          if (quote.dividendRate) {
+            const yieldStr = quote.dividendYield ? ` (${quote.dividendYield}%)` : '';
+            dividendDisplay = `<span class="dividend-tag">💰 配当: ${quote.dividendRate}円${yieldStr}</span>`;
+          }
+          if (item.gift) {
+            giftDisplay = `<span class="gift-tag">🎁 優待 <small>(${item.giftDate || ''})</small></span>`;
+          }
+          if (item.price) {
+            const barClass = (isTriggered && !item.disabled) ? 'progress-bar triggered-bar' : 'progress-bar';
+            progressArea = `
+              <div class="progress-wrapper">
+                <div class="progress-container">
+                  <div class="${barClass}" style="width: ${percent}%;"></div>
+                </div>
+                <span class="progress-text">${percent.toFixed(1)}%</span>
+              </div>
+            `;
+          }
+        } else if (quote && quote.error) {
+          priceDisplay = '<div style="font-size:0.75rem; color:#e53935; margin-top:3px;">※取得失敗</div>';
+        }
+
+        const isOFF = item.disabled;
+        const cardTriggerClass = (isTriggered && !isOFF) ? 'triggered-card' : '';
+
+        return `
+          <div class="item ${item.favorite ? 'favorite' : ''} ${isOFF ? 'disabled' : ''} ${cardTriggerClass}">
+            <div class="item-header">
+              <span class="item-title">
+                <button class="star-btn ${item.favorite ? 'active' : ''}" onclick="toggleFavorite(${originalIndex})">★</button>
+                ${item.name} <span class="code-badge">(${item.code})</span>
+                ${chanceBadgeHtml}
+                ${partyBadgeHtml}
+              </span>
+              <div class="link-group">
+                <button class="toggle-alert-btn" onclick="toggleAlertActive(${originalIndex})" title="${isOFF ? 'アラートOFF' : 'アラートON'}">
+                  ${isOFF ? '🔕' : '🔔'}
+                </button>
+                <a href="${yfWebUrl}" target="_blank" class="yf-app-btn" title="Yahoo!ファイナンス">y!</a>
+              </div>
+            </div>
+
+            <div class="price-row-wrapper">
+              ${priceDisplay}
+              <div>${giftDisplay}</div>
+            </div>
+            
+            <div class="list-info-row">
+              <div class="tags-wrapper">
+                ${item.price ? `<span class="condition-tag">指値: ${item.price}円</span>` : ''}
+                ${item.rate ? `<span class="condition-tag">下落: -${item.rate}%</span>` : ''}
+                ${dividendDisplay}
+              </div>
+              ${progressArea}
+            </div>
+
+            ${item.memo ? `<div class="memo-tag">📝 ${item.memo}</div>` : ''}
+            
+            <div class="btn-group">
+              <button class="icon-btn ${item.gift ? 'gift-active' : ''}" onclick="toggleGift(${originalIndex})" title="優待切り替え">🎁</button>
+              <button class="icon-btn" onclick="refreshSinglePrice(${originalIndex}, '${item.code}')" title="再取得">🔄</button>
+              <button class="icon-btn" onclick="editAlert(${originalIndex})" title="編集">✏️</button>
+              <button class="icon-btn" onclick="deleteAlert(${originalIndex})" title="削除" style="color:#e53935;">🗑️</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function editAlert(index) {
+      const item = alerts[index];
+      if (!isFormOpen) toggleFormAccordion();
+      document.getElementById('stockSearchInput').value = item.code;
+      document.getElementById('targetPrice').value = item.price || '';
+      document.getElementById('targetDropRate').value = item.rate || '';
+      document.getElementById('memoInput').value = item.memo || '';
+      document.getElementById('regFavCheckbox').checked = item.favorite || false;
+      document.getElementById('regGiftCheckbox').checked = item.gift || false;
+      editingIndex = index;
+      document.getElementById('formTitle').innerText = 'アラートの編集';
+      onCodeInput();
+    }
+
+    function deleteAlert(index) {
+      if (confirm('このアラートを削除しますか？')) {
+        alerts.splice(index, 1);
+        saveToStorage();
+        renderList();
+      }
+    }
   </script>
 </body>
 </html>
