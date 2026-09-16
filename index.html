@@ -62,7 +62,7 @@
     .preview-name-line { font-size: 0.8rem; font-weight: bold; color: #007aff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 170px; }
     .preview-price-line { font-size: 0.85rem; font-weight: bold; margin-top: 2px; display: flex; align-items: center; gap: 6px; }
 
-    /* 完全なアイコンだけの翻訳ボタン */
+    /* アイコンだけの翻訳ボタン */
     .trans-btn { background: none; border: 1px solid #007aff; color: #007aff; font-size: 0.9rem; width: 30px; height: 26px; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
     .trans-btn:hover { background: #007aff; color: white; }
 
@@ -100,10 +100,26 @@
     .star-btn.active { color: #ffcc00; }
 
     .price-row-wrapper { display: flex; justify-content: space-between; align-items: center; margin-top: 3px; }
+    .list-info-row { display: flex; align-items: center; justify-content: space-between; margin-top: 4px; gap: 6px; flex-wrap: wrap; }
+    
+    .progress-wrapper { display: flex; align-items: center; gap: 6px; }
+    .progress-container { background: var(--border-color); border-radius: 4px; height: 4px; width: 90px; overflow: hidden; display: inline-block; vertical-align: middle; }
+    .progress-bar { height: 100%; background: #007aff; width: 0%; transition: width 0.3s; }
+    .progress-bar.triggered-bar { background: #ff3b30; }
+    .progress-text { font-size: 0.68rem; color: var(--sub-text); }
+
     .tags-wrapper { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
     .gift-tag { font-size: 0.68rem; color: #d81b60; background: #fce4ec; padding: 1px 4px; border-radius: 4px; font-weight: bold; }
+    .chance-badge { font-size: 0.65rem; color: #d97706; background: #fef3c7; padding: 1px 5px; border-radius: 10px; font-weight: bold; margin-left: 2px; }
+    .party-badge { font-size: 0.7rem; background: #ff3b30; color: white; padding: 1px 5px; border-radius: 4px; font-weight: bold; margin-left: 4px; animation: bounce 1s infinite; }
     
     body.dark-mode .gift-tag { color: #f48fb1; background: #3a1c28; }
+    body.dark-mode .chance-badge { color: #fcd34d; background: #451a03; }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-3px); }
+    }
 
     .memo-tag { font-size: 0.72rem; color: var(--sub-text); background: var(--bg-color); padding: 3px 6px; border-radius: 4px; margin-top: 4px; border: 1px dashed var(--border-color); white-space: pre-wrap; }
 
@@ -126,6 +142,11 @@
     .modal-btn { flex: 1; padding: 8px; border: none; border-radius: 6px; font-weight: bold; font-size: 0.85rem; cursor: pointer; }
     .modal-btn-cancel { background: var(--border-color); color: var(--text-color); }
     .modal-btn-submit { background: #007aff; color: white; }
+
+    #startupPopupModal .modal-content { max-width: 320px; border: 2px solid #ff3b30; }
+    .popup-item-list { font-size: 0.8rem; margin: 10px 0; max-height: 150px; overflow-y: auto; background: var(--bg-color); padding: 8px; border-radius: 6px; }
+    
+    #minimizedBanner { position: fixed; bottom: 15px; right: 15px; background: #ff3b30; color: white; padding: 8px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.3); display: none; align-items: center; gap: 6px; cursor: pointer; z-index: 999; animation: bounce 1s infinite; }
   </style>
 </head>
 <body>
@@ -133,7 +154,7 @@
   <div class="header-bar">
     <div class="header-title-box">
       <h2 style="font-size: 1.1rem;">📈 株価アラート</h2>
-      <span class="version-tag">ver 2.6.3</span>
+      <span class="version-tag">ver 2.6.4</span>
     </div>
     <button class="dark-toggle-btn" onclick="toggleDarkMode()">🌙 ダークモード</button>
   </div>
@@ -280,10 +301,25 @@
     </div>
   </div>
 
+  <div id="startupPopupModal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-title" style="color:#ff3b30;">🚨 条件に達した銘柄があります！</div>
+      <p style="font-size:0.75rem; color:var(--sub-text); margin-top:0;">以下の銘柄が現在の条件に一致しています。</p>
+      <div id="startupPopupList" class="popup-item-list"></div>
+      <div class="modal-btn-group">
+        <button class="modal-btn modal-btn-cancel" onclick="minimizeStartupPopup()">小さくする</button>
+        <button class="modal-btn modal-btn-submit" onclick="closeStartupPopupComplete()">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="minimizedBanner" onclick="reopenStartupPopup()">
+    🚨 条件達成銘柄あり <span style="font-size:0.65rem; background:white; color:#ff3b30; padding:1px 5px; border-radius:10px;">表示</span>
+  </div>
+
   <script>
     const MY_SERVER_URL = "https://autumn-shape-d4ac.sub-katu20111023mio.workers.dev";
 
-    // 英語表記になりやすい銘柄を正確な日本語名に補正する辞書
     const NAME_FIX_MAP = {
       "7203": "トヨタ自動車",
       "9432": "NTT",
@@ -350,6 +386,35 @@
       } else {
         btn.className = 'notify-btn off';
         btn.innerText = '🔕 通知: OFF';
+      }
+    }
+
+    // 市場時間判定ロジックの復活
+    function checkMarketTime() {
+      const now = new Date();
+      const day = now.getDay(); // 0:日, 6:土
+      const hour = now.getHours();
+      const minute = now.getMinutes();
+      const timeNum = hour * 100 + minute;
+
+      const isWeekday = (day >= 1 && day <= 5);
+      const isOpenTime = (isWeekday && timeNum >= 900 && timeNum <= 1500);
+
+      const dot = document.getElementById('statusDot');
+      const text = document.getElementById('statusText');
+      const marketTimeText = document.getElementById('marketTimeText');
+      const nextOpenText = document.getElementById('nextOpenTimeText');
+
+      if (isOpenTime) {
+        dot.className = 'status-dot active';
+        text.innerText = '監視中 (市場営業中)';
+        marketTimeText.innerText = '市場: 営業中';
+        nextOpenText.innerText = '次回営業: 営業中';
+      } else {
+        dot.className = 'status-dot';
+        text.innerText = '監視停止中 (時間外)';
+        marketTimeText.innerText = '市場: 営業時間外';
+        nextOpenText.innerText = '次回営業: 本日 09:00〜';
       }
     }
 
@@ -517,6 +582,16 @@
       resetPreview();
     }
 
+    // 購入チャンススコア計算ロジックの復活
+    function calculateChanceScore(item) {
+      if (!item.price) return 0;
+      let score = 50;
+      if (item.targetPrice && item.price <= item.targetPrice) score += 30;
+      if (item.targetDropRate && item.changePercent <= -item.targetDropRate) score += 20;
+      if (item.favorite) score += 10;
+      return score;
+    }
+
     function renderList() {
       const listContainer = document.getElementById('alertList');
       const sortVal = document.getElementById('sortSelect').value;
@@ -529,6 +604,7 @@
       });
 
       filtered.sort((a, b) => {
+        if (sortVal === 'chance') return calculateChanceScore(b) - calculateChanceScore(a);
         if (sortVal === 'favorite') return (b.favorite ? 1 : 0) - (a.favorite ? 1 : 0);
         if (sortVal === 'not-favorite') return (a.favorite ? 1 : 0) - (b.favorite ? 1 : 0);
         if (sortVal === 'gift') return (b.gift ? 1 : 0) - (a.gift ? 1 : 0);
@@ -543,31 +619,46 @@
         return;
       }
 
-      listContainer.innerHTML = filtered.map(item => `
-        <div class="item ${item.favorite ? 'favorite' : ''}">
-          <div class="item-header">
-            <div class="item-title">
-              <button class="star-btn ${item.favorite ? 'active' : ''}" onclick="toggleFavorite('${item.code}')">★</button>
-              ${item.name} <span class="code-badge">(${item.code})</span>
+      listContainer.innerHTML = filtered.map(item => {
+        const score = calculateChanceScore(item);
+        const changeClass = (item.change || 0) >= 0 ? "yf-change-up" : "yf-change-down";
+        const sign = (item.change || 0) >= 0 ? "+" : "";
+
+        return `
+          <div class="item ${item.favorite ? 'favorite' : ''}">
+            <div class="item-header">
+              <div class="item-title">
+                <button class="star-btn ${item.favorite ? 'active' : ''}" onclick="toggleFavorite('${item.code}')">★</button>
+                ${item.name} <span class="code-badge">(${item.code})</span>
+                <span class="chance-badge">🔥 ${score}pt</span>
+              </div>
+              <div class="link-group">
+                <a href="https://finance.yahoo.co.jp/quote/${item.code}.T" target="_blank" class="yf-app-btn" title="Yahoo!ファイナンスで開く">y!</a>
+                <button class="toggle-alert-btn" onclick="toggleItemActive('${item.code}')" style="font-size:0.85rem;" title="監視切替">${item.enabled ? '🔔' : '🔕'}</button>
+              </div>
             </div>
-            <div class="link-group">
-              <a href="https://finance.yahoo.co.jp/quote/${item.code}.T" target="_blank" class="yf-app-btn" title="Yahoo!ファイナンスで開く">y!</a>
-              <button class="toggle-alert-btn" onclick="toggleItemActive('${item.code}')" style="font-size:0.85rem;" title="監視切替">${item.enabled ? '🔔' : '🔕'}</button>
+            <div class="price-row-wrapper">
+              <div style="font-size:1.05rem; font-weight:bold;">${item.price ? item.price + '円' : '取得中...'} 
+                <span class="${changeClass}" style="font-size:0.75rem; margin-left:6px;">${sign}${item.change || 0} (${sign}${item.changePercent || 0}%)</span>
+              </div>
+              <div class="tags-wrapper">
+                ${item.gift ? '<span class="gift-tag">🎁 優待</span>' : ''}
+              </div>
+            </div>
+            <div class="list-info-row">
+              <div style="font-size:0.72rem; color:var(--sub-text);">
+                ${item.targetPrice ? `指値: ${item.targetPrice}円` : ''} 
+                ${item.targetDropRate ? `下落: -${item.targetDropRate}%` : ''}
+              </div>
+            </div>
+            ${item.memo ? `<div class="memo-tag">${item.memo}</div>` : ''}
+            <div class="btn-group">
+              <button class="icon-btn" onclick="editItem('${item.code}')" title="編集">✏️</button>
+              <button class="icon-btn" onclick="deleteItem('${item.code}')" title="削除">🗑️</button>
             </div>
           </div>
-          <div class="price-row-wrapper">
-            <div style="font-size:1.05rem; font-weight:bold;">${item.price ? item.price + '円' : '取得中...'}</div>
-            <div class="tags-wrapper">
-              ${item.gift ? '<span class="gift-tag">🎁 優待</span>' : ''}
-            </div>
-          </div>
-          ${item.memo ? `<div class="memo-tag">${item.memo}</div>` : ''}
-          <div class="btn-group">
-            <button class="icon-btn" onclick="editItem('${item.code}')" title="編集">✏️</button>
-            <button class="icon-btn" onclick="deleteItem('${item.code}')" title="削除">🗑️</button>
-          </div>
-        </div>
-      `).join('');
+        `;
+      }).join('');
     }
 
     function toggleFavorite(code) {
@@ -632,6 +723,22 @@
       btn.innerText = "🔄 一括更新";
     }
 
+    function minimizeStartupPopup() {
+      document.getElementById('startupPopupModal').style.display = 'none';
+      document.getElementById('minimizedBanner').style.display = 'flex';
+    }
+
+    function closeStartupPopupComplete() {
+      document.getElementById('startupPopupModal').style.display = 'none';
+    }
+
+    function reopenStartupPopup() {
+      document.getElementById('startupPopupModal').style.display = 'flex';
+      document.getElementById('minimizedBanner').style.display = 'none';
+    }
+
+    // 初期化実行
+    checkMarketTime();
     updateGlobalNotifyBtn();
     renderList();
   </script>
