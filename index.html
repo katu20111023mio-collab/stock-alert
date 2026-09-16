@@ -82,6 +82,8 @@
     .item { padding: 10px 12px; border-radius: 8px; position: relative; margin-bottom: 8px; background: var(--card-bg); border: 1px solid var(--border-color); }
     .item.favorite { border-left: 5px solid #ffcc00; }
     .item.disabled { opacity: 0.6; background: var(--bg-color); }
+    .item.triggered-card { border: 2px solid #ff3b30; background: rgba(255, 59, 48, 0.03); }
+    
     .item-header { display: flex; justify-content: space-between; align-items: center; }
     .item-title { font-size: 0.95rem; font-weight: bold; color: var(--text-color); display: flex; align-items: center; gap: 4px; }
     .code-badge { font-size: 0.7rem; color: var(--sub-text); font-weight: normal; }
@@ -90,10 +92,13 @@
     .star-btn { color: #ccc; }
     .star-btn.active { color: #ffcc00; }
 
+    .price-row-wrapper { display: flex; justify-content: space-between; align-items: center; margin-top: 3px; }
     .list-info-row { display: flex; align-items: center; justify-content: space-between; margin-top: 4px; gap: 6px; flex-wrap: wrap; }
+    
     .progress-wrapper { display: flex; align-items: center; gap: 6px; }
     .progress-container { background: var(--border-color); border-radius: 4px; height: 4px; width: 90px; overflow: hidden; display: inline-block; vertical-align: middle; }
     .progress-bar { height: 100%; background: #007aff; width: 0%; transition: width 0.3s; }
+    .progress-bar.triggered-bar { background: #ff3b30; }
     .progress-text { font-size: 0.68rem; color: var(--sub-text); }
 
     .tags-wrapper { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
@@ -101,16 +106,22 @@
     .dividend-tag { font-size: 0.68rem; color: #2e7d32; background: #e8f5e9; padding: 1px 4px; border-radius: 4px; font-weight: bold; }
     .gift-tag { font-size: 0.68rem; color: #d81b60; background: #fce4ec; padding: 1px 4px; border-radius: 4px; font-weight: bold; }
     .chance-badge { font-size: 0.65rem; color: #d97706; background: #fef3c7; padding: 1px 5px; border-radius: 10px; font-weight: bold; margin-left: 2px; }
+    .party-badge { font-size: 0.7rem; background: #ff3b30; color: white; padding: 1px 5px; border-radius: 4px; font-weight: bold; margin-left: 4px; animation: bounce 1s infinite; }
+    
     body.dark-mode .dividend-tag { color: #81c784; background: #1b3820; }
     body.dark-mode .gift-tag { color: #f48fb1; background: #3a1c28; }
     body.dark-mode .chance-badge { color: #fcd34d; background: #451a03; }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-3px); }
+    }
 
     .memo-tag { font-size: 0.72rem; color: var(--sub-text); background: var(--bg-color); padding: 3px 6px; border-radius: 4px; margin-top: 4px; border: 1px dashed var(--border-color); white-space: pre-wrap; }
 
     .link-group { display: flex; gap: 4px; align-items: center; }
     .yf-app-btn { display: inline-flex; align-items: center; justify-content: center; background: #ff0033; color: white; text-decoration: none; font-size: 0.7rem; font-weight: bold; width: 20px; height: 18px; border-radius: 3px; }
     
-    /* アイコンだけのコンパクトなボタン列 */
     .btn-group { display: flex; gap: 4px; margin-top: 4px; justify-content: flex-end; align-items: center; }
     .icon-btn { padding: 3px 8px; font-size: 0.8rem; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; color: var(--text-color); display: inline-flex; align-items: center; justify-content: center; }
     .icon-btn.gift-active { color: #d81b60; border-color: #fce4ec; background: #fce4ec; }
@@ -118,10 +129,11 @@
 
     .dark-toggle-btn { background: none; border: 1px solid var(--border-color); padding: 3px 6px; border-radius: 10px; font-size: 0.7rem; cursor: pointer; color: var(--text-color); }
 
-    /* 比較モーダル画面 */
+    /* モーダル共通 */
     .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 15px; box-sizing: border-box; }
     .modal-content { background: var(--card-bg); width: 100%; max-width: 360px; padding: 16px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
     .modal-title { font-size: 1rem; font-weight: bold; margin-bottom: 8px; color: #007aff; }
+    
     .compare-table { width: 100%; font-size: 0.75rem; border-collapse: collapse; margin-bottom: 12px; }
     .compare-table th, .compare-table td { border: 1px solid var(--border-color); padding: 6px; text-align: left; }
     .compare-table th { background: var(--preview-bg); color: var(--sub-text); width: 25%; }
@@ -129,6 +141,13 @@
     .modal-btn { flex: 1; padding: 8px; border: none; border-radius: 6px; font-weight: bold; font-size: 0.85rem; cursor: pointer; }
     .modal-btn-cancel { background: var(--border-color); color: var(--text-color); }
     .modal-btn-submit { background: #007aff; color: white; }
+
+    /* 起動時お知らせポップアップ（通常＆最小化用フローティングバナー） */
+    #startupPopupModal .modal-content { max-width: 320px; border: 2px solid #ff3b30; }
+    .popup-item-list { font-size: 0.8rem; margin: 10px 0; max-height: 150px; overflow-y: auto; background: var(--bg-color); padding: 8px; border-radius: 6px; }
+    
+    /* 最小化フローティングボタン */
+    #minimizedBanner { position: fixed; bottom: 15px; right: 15px; background: #ff3b30; color: white; padding: 8px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.3); display: none; align-items: center; gap: 6px; cursor: pointer; z-index: 999; animation: bounce 1s infinite; }
   </style>
 </head>
 <body>
@@ -136,7 +155,7 @@
   <div class="header-bar">
     <div class="header-title-box">
       <h2 style="font-size: 1.1rem;">📈 株価アラート</h2>
-      <span class="version-tag">ver 2.2.0</span>
+      <span class="version-tag">ver 2.3.0</span>
     </div>
     <button class="dark-toggle-btn" onclick="toggleDarkMode()">🌙 ダークモード</button>
   </div>
@@ -163,7 +182,8 @@
       <label>銘柄コード（4桁）＆ プレビュー</label>
       <div class="code-preview-row">
         <div class="code-input-box">
-          <input type="number" id="stockSearchInput" placeholder="例:7203" oninput="onCodeInput()" maxlength="4">
+          <!-- 数字キーボードが出るように入力欄を最適化 -->
+          <input type="tel" inputmode="numeric" pattern="\d*" id="stockSearchInput" placeholder="例:7203" oninput="onCodeInput()" maxlength="4">
         </div>
         <div id="stockInfoPreview" class="stock-info-preview">
           <div id="previewName" class="preview-name-line" style="color: var(--sub-text);">4桁のコードを入力</div>
@@ -174,11 +194,11 @@
       <div class="conditions-grid">
         <div>
           <label for="targetPrice">① 指値 (円以下)</label>
-          <input type="number" id="targetPrice" placeholder="例: 1000">
+          <input type="tel" inputmode="numeric" pattern="\d*" id="targetPrice" placeholder="例: 1000">
         </div>
         <div>
           <label for="targetDropRate">② 下落率 (-%以上)</label>
-          <input type="number" id="targetDropRate" placeholder="例: 3">
+          <input type="tel" inputmode="numeric" pattern="\d*" id="targetDropRate" placeholder="例: 3">
         </div>
       </div>
 
@@ -223,15 +243,15 @@
       </div>
       <div class="filter-row">
         <span>株価絞り込み:</span>
-        <input type="number" id="minPriceInput" placeholder="最小" style="width: 60px;" oninput="renderList()"> 円 〜
-        <input type="number" id="maxPriceInput" placeholder="最大" style="width: 60px;" oninput="renderList()"> 円
+        <input type="tel" inputmode="numeric" pattern="\d*" id="minPriceInput" placeholder="最小" style="width: 60px;" oninput="renderList()"> 円 〜
+        <input type="tel" inputmode="numeric" pattern="\d*" id="maxPriceInput" placeholder="最大" style="width: 60px;" oninput="renderList()"> 円
       </div>
     </div>
 
     <div id="alertList"></div>
   </div>
 
-  <!-- 比較確認モーダル -->
+  <!-- 重複登録比較確認モーダル -->
   <div id="compareModal" class="modal-overlay">
     <div class="modal-content">
       <div class="modal-title">⚠️ 既に登録されています</div>
@@ -277,6 +297,24 @@
     </div>
   </div>
 
+  <!-- 起動時条件達成まとめポップアップ -->
+  <div id="startupPopupModal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-title" style="color:#ff3b30;">🚨 条件に達した銘柄があります！</div>
+      <p style="font-size:0.75rem; color:var(--sub-text); margin-top:0;">以下の銘柄が現在の条件に一致しています。</p>
+      <div id="startupPopupList" class="popup-item-list"></div>
+      <div class="modal-btn-group">
+        <button class="modal-btn modal-btn-cancel" onclick="minimizeStartupPopup()">小さくする</button>
+        <button class="modal-btn modal-btn-submit" onclick="closeStartupPopup完全に()">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 最小化時に画面右下に現れる再表示ボタン -->
+  <div id="minimizedBanner" onclick="reopenStartupPopup()">
+    🚨 条件達成銘柄あり <span style="font-size:0.65rem; background:white; color:#ff3b30; padding:1px 5px; border-radius:10px;">表示</span>
+  </div>
+
   <script>
     const MY_SERVER_URL = "https://autumn-shape-d4ac.sub-katu20111023mio.workers.dev";
 
@@ -302,14 +340,16 @@
     let searchTimer = null;
     let isFormOpen = true;
     let pendingDuplicateIndex = null;
+    let triggeredStockList = [];
 
-    window.onload = () => {
+    window.onload = async () => {
       if (localStorage.getItem('dark_mode') === 'true') {
         document.body.classList.add('dark-mode');
       }
       updateLastOpenTime();
       checkMarketTimeAndMonitor();
-      renderList();
+      await refreshAllPrices();
+      checkStartupTriggers();
       setInterval(checkMarketTimeAndMonitor, 30000);
     };
 
@@ -400,8 +440,6 @@
       
       const nextText = isOpen ? "次回営業: 取引進行中" : getNextMarketOpenText();
       document.getElementById('nextOpenTimeText').innerText = nextText;
-
-      refreshAllPrices();
     }
 
     async function fetchStockQuote(code) {
@@ -498,6 +536,7 @@
       btn.disabled = true;
       btn.innerText = '🔄 更新中...';
       await refreshAllPrices();
+      checkStartupTriggers();
       btn.disabled = false;
       btn.innerText = '🔄 一括更新';
     }
@@ -509,7 +548,6 @@
       if (quote) {
         priceCache[code] = quote;
         saveToStorage();
-        checkAndNotify(alerts[index], quote);
       } else {
         priceCache[code] = { error: true };
       }
@@ -517,13 +555,29 @@
     }
 
     async function refreshAllPrices() {
+      triggeredStockList = [];
       for (let i = 0; i < alerts.length; i++) {
         const item = alerts[i];
         const quote = await fetchStockQuote(item.code);
         if (quote) {
           priceCache[item.code] = quote;
           saveToStorage();
-          checkAndNotify(item, quote);
+          
+          if (!item.disabled) {
+            let isTriggered = false;
+            let triggers = [];
+            if (item.price && quote.price <= parseFloat(item.price)) {
+              isTriggered = true;
+              triggers.push(`指値(${item.price}円以下)達成: 現在${quote.price}円`);
+            }
+            if (item.rate && quote.changePercent <= -Math.abs(parseFloat(item.rate))) {
+              isTriggered = true;
+              triggers.push(`下落率(-${item.rate}%以上)達成: 現在${quote.changePercent}%`);
+            }
+            if (isTriggered) {
+              triggeredStockList.push({ name: item.name, code: item.code, details: triggers.join(' / ') });
+            }
+          }
         } else {
           priceCache[item.code] = { error: true };
         }
@@ -531,18 +585,31 @@
       renderList();
     }
 
-    function checkAndNotify(item, quote) {
-      if (item.disabled) return;
-      let triggered = [];
-      if (item.price && quote.price <= parseFloat(item.price)) {
-        triggered.push(`指定指値(${item.price}円)以下 (${quote.price}円)`);
+    function checkStartupTriggers() {
+      if (triggeredStockList.length > 0) {
+        const listContainer = document.getElementById('startupPopupList');
+        listContainer.innerHTML = triggeredStockList.map(t => `
+          <div style="margin-bottom:6px; border-bottom:1px dashed var(--border-color); padding-bottom:4px;">
+            <strong>${t.name} (${t.code})</strong><br>
+            <span style="color:#ff3b30; font-size:0.7rem;">🎉 ${t.details}</span>
+          </div>
+        `).join('');
+        document.getElementById('startupPopupModal').style.display = 'flex';
       }
-      if (item.rate && quote.changePercent <= -Math.abs(parseFloat(item.rate))) {
-        triggered.push(`値下がり率(-${item.rate}%)以上 (${quote.changePercent}%)`);
-      }
-      if (triggered.length > 0) {
-        sendNotification(`🚨 株価アラート: ${item.name}`, triggered.join(' / '));
-      }
+    }
+
+    function minimizeStartupPopup() {
+      document.getElementById('startupPopupModal').style.display = 'none';
+      document.getElementById('minimizedBanner').style.display = 'flex';
+    }
+
+    function closeStartupPopup完全に() {
+      document.getElementById('startupPopupModal').style.display = 'none';
+    }
+
+    function reopenStartupPopup() {
+      document.getElementById('minimizedBanner').style.display = 'none';
+      document.getElementById('startupPopupModal').style.display = 'flex';
     }
 
     function handleFormSubmit(forceOverwrite) {
@@ -709,12 +776,20 @@
         const quote = priceCache[item.code];
         const chanceScore = calculateChanceScore(item, quote);
         let percent = 0;
-        if (quote && !quote.error && item.price) {
-          const target = parseFloat(item.price);
-          const current = quote.price;
-          percent = Math.min(Math.max((target / current) * 100, 0), 100);
+        let isTriggered = false;
+
+        if (quote && !quote.error) {
+          if (item.price) {
+            const target = parseFloat(item.price);
+            const current = quote.price;
+            percent = Math.min(Math.max((target / current) * 100, 0), 100);
+            if (current <= target) isTriggered = true;
+          }
+          if (item.rate && quote.changePercent <= -Math.abs(parseFloat(item.rate))) {
+            isTriggered = true;
+          }
         }
-        return { item, originalIndex: index, quote, chanceScore, percent };
+        return { item, originalIndex: index, quote, chanceScore, percent, isTriggered };
       }).filter(({ quote }) => {
         if (!quote || quote.error) return true; 
         return quote.price >= minPrice && quote.price <= maxPrice;
@@ -748,13 +823,15 @@
         return;
       }
 
-      listDiv.innerHTML = filteredAlerts.map(({ item, originalIndex, quote, chanceScore, percent }) => {
+      listDiv.innerHTML = filteredAlerts.map(({ item, originalIndex, quote, chanceScore, percent, isTriggered }) => {
         const yfWebUrl = `https://finance.yahoo.co.jp/quote/${item.code}.T`;
         
         let priceDisplay = '<div style="font-size:0.75rem; color:#888; margin-top:3px;">株価を取得中...</div>';
         let progressArea = '';
         let dividendDisplay = '';
+        let giftDisplay = '';
         let chanceBadgeHtml = `<span class="chance-badge">🔥 ${chanceScore}pt</span>`;
+        let partyBadgeHtml = (isTriggered && !item.disabled) ? `<span class="party-badge">🎉 到達!</span>` : '';
 
         if (quote && !quote.error) {
           priceDisplay = createYfHTML(quote);
@@ -762,11 +839,15 @@
             const yieldStr = quote.dividendYield ? ` (${quote.dividendYield}%)` : '';
             dividendDisplay = `<span class="dividend-tag">💰 配当: ${quote.dividendRate}円${yieldStr}</span>`;
           }
+          if (item.gift) {
+            giftDisplay = `<span class="gift-tag">🎁 優待 <small>(${item.giftDate || ''})</small></span>`;
+          }
           if (item.price) {
+            const barClass = (isTriggered && !item.disabled) ? 'progress-bar triggered-bar' : 'progress-bar';
             progressArea = `
               <div class="progress-wrapper">
                 <div class="progress-container">
-                  <div class="progress-bar" style="width: ${percent}%;"></div>
+                  <div class="${barClass}" style="width: ${percent}%;"></div>
                 </div>
                 <span class="progress-text">${percent.toFixed(1)}%</span>
               </div>
@@ -777,14 +858,16 @@
         }
 
         const isOFF = item.disabled;
+        const cardTriggerClass = (isTriggered && !isOFF) ? 'triggered-card' : '';
 
         return `
-          <div class="item ${item.favorite ? 'favorite' : ''} ${isOFF ? 'disabled' : ''}">
+          <div class="item ${item.favorite ? 'favorite' : ''} ${isOFF ? 'disabled' : ''} ${cardTriggerClass}">
             <div class="item-header">
               <span class="item-title">
                 <button class="star-btn ${item.favorite ? 'active' : ''}" onclick="toggleFavorite(${originalIndex})">★</button>
                 ${item.name} <span class="code-badge">(${item.code})</span>
                 ${chanceBadgeHtml}
+                ${partyBadgeHtml}
               </span>
               <div class="link-group">
                 <button class="toggle-alert-btn" onclick="toggleAlertActive(${originalIndex})" title="${isOFF ? 'アラートOFF' : 'アラートON'}">
@@ -793,14 +876,18 @@
                 <a href="${yfWebUrl}" target="_blank" class="yf-app-btn" title="Yahoo!ファイナンス">y!</a>
               </div>
             </div>
-            ${priceDisplay}
+
+            <!-- 現在株価の行の右横に優待タグを配置 -->
+            <div class="price-row-wrapper">
+              ${priceDisplay}
+              <div>${giftDisplay}</div>
+            </div>
             
             <div class="list-info-row">
               <div class="tags-wrapper">
                 ${item.price ? `<span class="condition-tag">指値: ${item.price}円</span>` : ''}
                 ${item.rate ? `<span class="condition-tag">下落: -${item.rate}%</span>` : ''}
                 ${dividendDisplay}
-                ${item.gift ? `<span class="gift-tag">🎁 優待 <small>(${item.giftDate || ''})</small></span>` : ''}
               </div>
               ${progressArea}
             </div>
