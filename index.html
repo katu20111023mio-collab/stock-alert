@@ -39,7 +39,6 @@
     input, select, textarea { width: 100%; padding: 8px 10px; margin-top: 3px; border: 1px solid var(--border-color); border-radius: 6px; box-sizing: border-box; font-size: 16px; background: var(--input-bg); color: var(--text-color); -webkit-user-select: text; user-select: text; }
     textarea { resize: vertical; height: 50px; font-family: inherit; }
 
-    /* 登録アコーディオンヘッダー */
     .accordion-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; }
     .register-toggle-btn { background: #007aff; color: white; border: none; border-radius: 6px; padding: 5px 12px; font-size: 0.8rem; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 4px; }
 
@@ -49,19 +48,22 @@
     .status-dot { height: 7px; width: 7px; background-color: #bbb; border-radius: 50%; display: inline-block; margin-right: 4px; }
     .status-dot.active { background-color: #4caf50; }
 
-    /* 上部ボタンの横並びエリア */
     .top-action-group { display: flex; gap: 8px; margin-bottom: 10px; }
     .notify-btn { flex: 1; padding: 8px; background: #34c759; color: white; border: none; border-radius: 6px; font-size: 0.8rem; font-weight: bold; cursor: pointer; text-align: center; transition: background 0.3s; }
-    .notify-btn.off { background: #8e8e93; } /* 通知OFF時の色 */
+    .notify-btn.off { background: #8e8e93; }
     .portfolio-link-btn { flex: 1; padding: 8px; background: #ff0033; color: white; border: none; border-radius: 6px; font-size: 0.8rem; font-weight: bold; cursor: pointer; text-align: center; text-decoration: none; display: flex; align-items: center; justify-content: center; box-sizing: border-box; }
 
     .code-preview-row { display: flex; gap: 8px; align-items: stretch; margin-top: 4px; }
     .code-input-box { width: 90px; flex-shrink: 0; }
     .code-input-box input { text-align: center; font-weight: bold; font-size: 1.1rem; letter-spacing: 1px; padding: 6px; }
     
-    .stock-info-preview { flex-grow: 1; background: var(--preview-bg); border: 1px solid var(--preview-border); padding: 6px 10px; border-radius: 6px; display: flex; flex-direction: column; justify-content: center; min-height: 42px; }
-    .preview-name-line { font-size: 0.8rem; font-weight: bold; color: #007aff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .stock-info-preview { flex-grow: 1; background: var(--preview-bg); border: 1px solid var(--preview-border); padding: 6px 10px; border-radius: 6px; display: flex; flex-direction: column; justify-content: center; min-height: 42px; position: relative; }
+    .preview-header-line { display: flex; justify-content: space-between; align-items: center; }
+    .preview-name-line { font-size: 0.8rem; font-weight: bold; color: #007aff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 170px; }
     .preview-price-line { font-size: 0.85rem; font-weight: bold; margin-top: 2px; display: flex; align-items: center; gap: 6px; }
+
+    .trans-btn { background: none; border: 1px solid #007aff; color: #007aff; font-size: 0.7rem; padding: 1px 6px; border-radius: 4px; cursor: pointer; font-weight: bold; display: inline-flex; align-items: center; gap: 2px; }
+    .trans-btn:hover { background: #007aff; color: white; }
 
     .yf-price-box { display: flex; align-items: baseline; gap: 6px; }
     .yf-icon-up { background: #1e88e5; color: white; border-radius: 3px; padding: 1px 4px; font-weight: bold; font-size: 0.75rem; }
@@ -76,7 +78,6 @@
     .submit-btn { width: 100%; padding: 10px; background: #007aff; color: white; border: none; border-radius: 6px; font-size: 0.95rem; font-weight: bold; margin-top: 10px; cursor: pointer; }
     .submit-btn:disabled { background: #ccc; cursor: not-allowed; }
     .refresh-btn { padding: 4px 10px; background: #007aff; color: white; border: none; border-radius: 14px; font-size: 0.75rem; font-weight: bold; cursor: pointer; }
-    .refresh-btn:disabled { background: #ccc; cursor: not-allowed; }
 
     .list-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #007aff; padding-bottom: 4px; margin-bottom: 10px; }
     .sort-filter-box { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; font-size: 0.78rem; background: var(--bg-color); padding: 6px 8px; border-radius: 6px; border: 1px solid var(--border-color); }
@@ -134,7 +135,6 @@
 
     .dark-toggle-btn { background: none; border: 1px solid var(--border-color); padding: 3px 6px; border-radius: 10px; font-size: 0.7rem; cursor: pointer; color: var(--text-color); }
 
-    /* モーダル共通 */
     .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 15px; box-sizing: border-box; }
     .modal-content { background: var(--card-bg); width: 100%; max-width: 360px; padding: 16px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
     .modal-title { font-size: 1rem; font-weight: bold; margin-bottom: 8px; color: #007aff; }
@@ -147,11 +147,9 @@
     .modal-btn-cancel { background: var(--border-color); color: var(--text-color); }
     .modal-btn-submit { background: #007aff; color: white; }
 
-    /* 起動時条件達成まとめポップアップ */
     #startupPopupModal .modal-content { max-width: 320px; border: 2px solid #ff3b30; }
     .popup-item-list { font-size: 0.8rem; margin: 10px 0; max-height: 150px; overflow-y: auto; background: var(--bg-color); padding: 8px; border-radius: 6px; }
     
-    /* 最小化フローティングボタン */
     #minimizedBanner { position: fixed; bottom: 15px; right: 15px; background: #ff3b30; color: white; padding: 8px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.3); display: none; align-items: center; gap: 6px; cursor: pointer; z-index: 999; animation: bounce 1s infinite; }
   </style>
 </head>
@@ -160,7 +158,7 @@
   <div class="header-bar">
     <div class="header-title-box">
       <h2 style="font-size: 1.1rem;">📈 株価アラート</h2>
-      <span class="version-tag">ver 2.5.0</span>
+      <span class="version-tag">ver 2.6.0</span>
     </div>
     <button class="dark-toggle-btn" onclick="toggleDarkMode()">🌙 ダークモード</button>
   </div>
@@ -176,7 +174,6 @@
     </div>
   </div>
 
-  <!-- 通知切り替えボタンとポートフォリオリンクを横並びに配置 -->
   <div class="top-action-group">
     <button id="globalNotifyBtn" class="notify-btn" onclick="toggleGlobalNotification()">🔔 通知: 読込中...</button>
     <a href="https://finance.yahoo.co.jp/portfolio" target="_blank" class="portfolio-link-btn">📊 y!ポートフォリオ</a>
@@ -195,7 +192,10 @@
           <input type="number" id="stockSearchInput" placeholder="例:7203" oninput="onCodeInput()" maxlength="4">
         </div>
         <div id="stockInfoPreview" class="stock-info-preview">
-          <div id="previewName" class="preview-name-line" style="color: var(--sub-text);">4桁のコードを入力</div>
+          <div class="preview-header-line">
+            <div id="previewName" class="preview-name-line" style="color: var(--sub-text);">4桁のコードを入力</div>
+            <button id="translateBtn" class="trans-btn" style="display: none;" onclick="translateStockName()">🌐 日本語化</button>
+          </div>
           <div id="previewPrice" class="preview-price-line" style="font-size:0.75rem; color:var(--sub-text);">株価等が表示されます</div>
         </div>
       </div>
@@ -260,7 +260,6 @@
     <div id="alertList"></div>
   </div>
 
-  <!-- 重複登録比較確認モーダル -->
   <div id="compareModal" class="modal-overlay">
     <div class="modal-content">
       <div class="modal-title">⚠️ 既に登録されています</div>
@@ -306,7 +305,6 @@
     </div>
   </div>
 
-  <!-- 起動時条件達成まとめポップアップ -->
   <div id="startupPopupModal" class="modal-overlay">
     <div class="modal-content">
       <div class="modal-title" style="color:#ff3b30;">🚨 条件に達した銘柄があります！</div>
@@ -319,7 +317,6 @@
     </div>
   </div>
 
-  <!-- 最小化時に画面右下に現れる再表示ボタン -->
   <div id="minimizedBanner" onclick="reopenStartupPopup()">
     🚨 条件達成銘柄あり <span style="font-size:0.65rem; background:white; color:#ff3b30; padding:1px 5px; border-radius:10px;">表示</span>
   </div>
@@ -339,11 +336,21 @@
       "8316": "三井住友FG",
       "8411": "みずほFG",
       "6758": "ソニーグループ",
-      "7974": "任天堂"
+      "7974": "任天堂",
+      "7601": "ポッカサッポロ（ポプラ）" // あるいは ポプラ など
     };
 
+    // 追加で手動翻訳用の簡易辞書や自動推測ルール
+    function getManualTranslation(code, rawName) {
+      if (NAME_FIX_MAP[code]) return NAME_FIX_MAP[code];
+      if (code === "7601") return "ポプラ";
+      // もし英語名っぽければ「CO LTD」などを省く処理
+      let cleaned = rawName.replace(/CO\s*LTD/gi, "").replace(/INC/gi, "").replace(/CORP/gi, "").trim();
+      return cleaned || rawName;
+    }
+
     let alerts = JSON.parse(localStorage.getItem('stock_alerts') || '[]');
-    let isGlobalNotifyOn = localStorage.getItem('global_notify') === 'true'; // 通知の全体設定
+    let isGlobalNotifyOn = localStorage.getItem('global_notify') === 'true';
 
     let editingIndex = null;
     let priceCache = {};
@@ -365,7 +372,6 @@
       setInterval(checkMarketTimeAndMonitor, 30000);
     };
 
-    // --- 通知トグルボタン関連 ---
     function initNotificationBtn() {
       const btn = document.getElementById('globalNotifyBtn');
       if (isGlobalNotifyOn && ('Notification' in window) && Notification.permission === 'granted') {
@@ -412,16 +418,11 @@
         new Notification(title, { body: body, icon: 'https://finance.yahoo.co.jp/favicon.ico' });
       }
     }
-    // ----------------------------
 
     function toggleFormAccordion() {
       isFormOpen = !isFormOpen;
       const body = document.getElementById('formBody');
-      if (isFormOpen) {
-        body.style.display = 'block';
-      } else {
-        body.style.display = 'none';
-      }
+      body.style.display = isFormOpen ? 'block' : 'none';
     }
 
     function toggleDarkMode() {
@@ -456,16 +457,11 @@
       const day = now.getDay();
       const time = now.getHours() * 100 + now.getMinutes();
 
-      if (day >= 1 && day <= 5 && time < 900) {
-        return "次回営業: 本日 09:00〜";
-      }
-      if (day >= 1 && day <= 5 && time >= 1130 && time < 1230) {
-        return "次回営業: 本日 12:30〜（後場）";
-      }
+      if (day >= 1 && day <= 5 && time < 900) return "次回営業: 本日 09:00〜";
+      if (day >= 1 && day <= 5 && time >= 1130 && time < 1230) return "次回営業: 本日 12:30〜（後場）";
 
       let nextDate = new Date(now);
       nextDate.setDate(nextDate.getDate() + 1);
-
       while (nextDate.getDay() === 0 || nextDate.getDay() === 6) {
         nextDate.setDate(nextDate.getDate() + 1);
       }
@@ -473,7 +469,6 @@
       const isTomorrow = (nextDate.getDate() === now.getDate() + 1);
       const daysStr = ["日", "月", "火", "水", "木", "金", "土"];
       const dateLabel = isTomorrow ? "明日" : `${nextDate.getMonth() + 1}/${nextDate.getDate()}(${daysStr[nextDate.getDay()]})`;
-
       return `次回営業: ${dateLabel} 09:00〜`;
     }
 
@@ -482,9 +477,7 @@
       document.getElementById('statusDot').className = isOpen ? "status-dot active" : "status-dot";
       document.getElementById('statusText').innerText = isOpen ? "リアルタイム監視中" : "監視停止中（時間外）";
       document.getElementById('marketTimeText').innerText = isOpen ? "市場：営業時間内" : "市場：営業時間外";
-      
-      const nextText = isOpen ? "次回営業: 取引進行中" : getNextMarketOpenText();
-      document.getElementById('nextOpenTimeText').innerText = nextText;
+      document.getElementById('nextOpenTimeText').innerText = isOpen ? "次回営業: 取引進行中" : getNextMarketOpenText();
     }
 
     async function fetchStockQuote(code) {
@@ -521,11 +514,13 @@
       const code = document.getElementById('stockSearchInput').value.trim();
       const nameLine = document.getElementById('previewName');
       const priceLine = document.getElementById('previewPrice');
+      const transBtn = document.getElementById('translateBtn');
 
       if (code.length !== 4) {
         nameLine.innerText = '4桁のコードを入力';
         nameLine.style.color = 'var(--sub-text)';
         priceLine.innerHTML = '株価等が表示されます';
+        transBtn.style.display = 'none';
         resetSubmitBtn();
         return;
       }
@@ -533,6 +528,7 @@
       nameLine.innerText = '情報を取得中...';
       nameLine.style.color = '#007aff';
       priceLine.innerHTML = '';
+      transBtn.style.display = 'none';
 
       searchTimer = setTimeout(async () => {
         const stockData = await fetchStockQuote(code);
@@ -541,6 +537,9 @@
           nameLine.innerText = `${stockData.name} (${stockData.code})`;
           priceLine.innerHTML = createYfHTML(stockData);
           
+          // 英語名っぽい場合や辞書にない場合に翻訳ボタンを表示
+          transBtn.style.display = 'inline-flex';
+
           const submitBtn = document.getElementById('submitBtn');
           submitBtn.disabled = false;
           submitBtn.innerText = editingIndex !== null ? '変更を保存する' : 'アラートを追加する';
@@ -549,9 +548,18 @@
           nameLine.innerText = '取得エラー';
           nameLine.style.color = '#e53935';
           priceLine.innerHTML = '正しい4桁コードを確認してください';
+          transBtn.style.display = 'none';
           resetSubmitBtn();
         }
       }, 150);
+    }
+
+    // 🌐 翻訳ボタンが押された時の処理
+    function translateStockName() {
+      if (!currentFetchedStock) return;
+      const betterName = getManualTranslation(currentFetchedStock.code, currentFetchedStock.rawName);
+      currentFetchedStock.name = betterName;
+      document.getElementById('previewName').innerText = `${betterName} (${currentFetchedStock.code})`;
     }
 
     function resetSubmitBtn() {
@@ -591,6 +599,10 @@
       renderList();
       const quote = await fetchStockQuote(code);
       if (quote) {
+        // 既存の登録銘柄名が英語のままなら自動適用を試みる
+        if (alerts[index].name === quote.rawName && NAME_FIX_MAP[code]) {
+          alerts[index].name = NAME_FIX_MAP[code];
+        }
         priceCache[code] = quote;
         saveToStorage();
       } else {
@@ -641,7 +653,6 @@
         `).join('');
         document.getElementById('startupPopupModal').style.display = 'flex';
 
-        // --- プッシュ通知の送信処理 ---
         if (isGlobalNotifyOn) {
           const summaryNames = triggeredStockList.map(t => t.name).join(', ');
           sendNotification('🚨 条件達成銘柄があります！', `${summaryNames} が設定条件に到達しました。`);
@@ -766,6 +777,7 @@
       document.getElementById('previewName').innerText = '4桁のコードを入力';
       document.getElementById('previewName').style.color = 'var(--sub-text)';
       document.getElementById('previewPrice').innerHTML = '株価等が表示されます';
+      document.getElementById('translateBtn').style.display = 'none';
       resetSubmitBtn();
     }
 
