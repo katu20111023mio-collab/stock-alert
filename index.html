@@ -43,8 +43,10 @@
     .accordion-header::after { content: '▲'; font-size: 0.8rem; color: #007aff; transition: transform 0.3s; }
     .accordion-header.collapsed::after { transform: rotate(180deg); }
 
+    /* ステータスバー（2行ですっきりレイアウト） */
     .status-bar { font-size: 0.75rem; color: var(--sub-text); background: var(--preview-bg); padding: 10px 12px; border-radius: 6px; margin-bottom: 12px; }
-    .status-row { display: flex; justify-content: space-between; align-items: center; }
+    .status-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+    .status-sub-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.68rem; color: var(--sub-text); border-top: 1px dashed var(--border-color); padding-top: 4px; }
     .status-dot { height: 8px; width: 8px; background-color: #bbb; border-radius: 50%; display: inline-block; margin-right: 4px; }
     .status-dot.active { background-color: #4caf50; }
 
@@ -109,7 +111,7 @@
   <div class="header-bar">
     <div class="header-title-box">
       <h2 style="font-size: 1.2rem;">📈 株価アラート</h2>
-      <span class="version-tag">ver 1.8.0</span>
+      <span class="version-tag">ver 1.9.0</span>
     </div>
     <button class="dark-toggle-btn" onclick="toggleDarkMode()">🌙 ダークモード</button>
   </div>
@@ -117,13 +119,11 @@
   <div class="status-bar">
     <div class="status-row">
       <div><span id="statusDot" class="status-dot"></span> <span id="statusText">監視待機中</span></div>
-      <div id="marketTimeText" style="color:#888;">市場時間判定中...</div>
+      <div id="marketTimeText" style="color:#888; font-weight:500;">市場時間判定中...</div>
     </div>
-    <div style="margin-top: 4px; color: #007aff; font-weight: bold; font-size: 0.7rem;" id="nextOpenTimeText">
-      次回営業: 計算中...
-    </div>
-    <div style="margin-top: 2px; color: #777; font-size: 0.7rem;" id="lastOpenTime">
-      前回の起動: 初回アクセス
+    <div class="status-sub-row">
+      <div id="lastOpenTime" style="color:var(--sub-text);">前回の起動: 初回アクセス</div>
+      <div id="nextOpenTimeText" style="color:#007aff; font-weight:bold;">次回営業: 計算中...</div>
     </div>
   </div>
 
@@ -275,22 +275,18 @@
       return (time >= 900 && time <= 1130) || (time >= 1230 && time <= 1530);
     }
 
-    // 次回の営業開始日時を計算する処理
     function getNextMarketOpenText() {
       const now = new Date();
       const day = now.getDay();
       const time = now.getHours() * 100 + now.getMinutes();
 
-      // 平日の前場開始前（〜09:00）
       if (day >= 1 && day <= 5 && time < 900) {
         return "次回営業: 本日 09:00〜";
       }
-      // 平日の昼休み（11:30〜12:30）
       if (day >= 1 && day <= 5 && time >= 1130 && time < 1230) {
         return "次回営業: 本日 12:30〜（後場）";
       }
 
-      // 翌日以降の営業日を探す
       let nextDate = new Date(now);
       nextDate.setDate(nextDate.getDate() + 1);
 
@@ -332,6 +328,11 @@
         const changePercent = parseFloat(((changeNum / prevClose) * 100).toFixed(2));
         
         let name = NAME_FIX_MAP[code] || meta.shortName || meta.symbol.replace('.T', '');
+        const dividendRate = meta.trailingAnnualDividendRate || null;
+        let dividendYield = null;
+        if (dividendRate && price > 0) {
+          dividendYield = parseFloat(((dividendRate / price) * 100).toFixed(2));
+        }
 
         return { 
           code, 
@@ -339,7 +340,8 @@
           price, 
           changeNum, 
           changePercent,
-          dividendRate: meta.trailingAnnualDividendRate || null 
+          dividendRate,
+          dividendYield
         };
       } catch (e) {
         return null;
@@ -596,7 +598,6 @@
 
       listDiv.innerHTML = filteredAlerts.map(({ item, originalIndex }) => {
         const yfWebUrl = `https://finance.yahoo.co.jp/quote/${item.code}.T`;
-        
         const quote = priceCache[item.code];
         
         let priceDisplay = '<div style="font-size:0.8rem; color:#888; margin-top:4px;">株価を取得中...</div>';
@@ -606,7 +607,8 @@
         if (quote && !quote.error) {
           priceDisplay = createYfHTML(quote);
           if (quote.dividendRate) {
-            dividendDisplay = `<span class="dividend-tag">💰 配当: ${quote.dividendRate}円</span>`;
+            const yieldStr = quote.dividendYield ? ` (${quote.dividendYield}%)` : '';
+            dividendDisplay = `<span class="dividend-tag">💰 配当: ${quote.dividendRate}円${yieldStr}</span>`;
           }
           if (item.price) {
             const target = parseFloat(item.price);
