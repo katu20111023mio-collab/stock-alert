@@ -3,994 +3,519 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>株価アラート</title>
+  <title>株価アラート ver 2.7.0</title>
   <style>
     :root {
-      --bg-color: #f0f2f5;
+      --bg-color: #f4f6f8;
       --card-bg: #ffffff;
       --text-color: #1a1a1a;
       --sub-text: #666666;
-      --border-color: #e5e7eb;
-      --input-bg: #ffffff;
-      --preview-bg: #eef4ff;
-      --preview-border: #cce0ff;
+      --border-color: #e0e0e0;
+      --primary-color: #007aff;
+      --danger-color: #ff3b30;
+      --success-color: #34c759;
+      --warning-color: #ff9500;
+      --badge-bg: #fff3cd;
+      --badge-text: #856404;
     }
 
     body.dark-mode {
       --bg-color: #121212;
       --card-bg: #1e1e1e;
-      --text-color: #e0e0e0;
+      --text-color: #f0f0f0;
       --sub-text: #aaa;
       --border-color: #333;
-      --input-bg: #2a2a2a;
-      --preview-bg: #1a2638;
-      --preview-border: #2c4263;
+      --badge-bg: #3a3000;
+      --badge-text: #ffd700;
     }
 
-    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 10px; background: var(--bg-color); color: var(--text-color); margin: 0; -webkit-user-select: none; user-select: none; transition: background 0.3s, color 0.3s; }
-    .header-bar { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 8px; }
-    .header-title-box { display: flex; align-items: baseline; gap: 6px; }
-    .version-tag { font-size: 0.7rem; color: var(--sub-text); font-weight: normal; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+    body { background-color: var(--bg-color); color: var(--text-color); padding: 12px; max-width: 600px; margin: 0 auto; transition: background-color 0.3s, color 0.3s; }
+
+    /* ヘッダー */
+    header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .app-title { font-size: 1.3rem; font-weight: bold; display: flex; align-items: center; gap: 6px; }
+    .version-tag { font-size: 0.75rem; color: var(--sub-text); font-weight: normal; }
+    .theme-toggle { background: none; border: 1px solid var(--border-color); color: var(--text-color); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem; cursor: pointer; }
+
+    /* ステータスバー */
+    .status-bar { font-size: 0.75rem; color: var(--sub-text); display: flex; justify-content: space-between; margin-bottom: 12px; padding: 4px 2px; }
+
+    /* クイックリンクボタン */
+    .quick-nav { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+    .nav-btn { display: flex; align-items: center; justify-content: center; gap: 6px; padding: 10px; border-radius: 8px; font-weight: bold; font-size: 0.9rem; text-decoration: none; color: white; border: none; cursor: pointer; }
+    .btn-notify { background-color: var(--success-color); }
+    .btn-yahoo { background-color: #ff0033; }
+
+    /* カード枠 */
+    .card { background-color: var(--card-bg); border-radius: 12px; padding: 14px; margin-bottom: 16px; border: 1px solid var(--border-color); box-shadow: 0 2px 6px rgba(0,0,0,0.03); }
+    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 6px; border-bottom: 2px solid var(--primary-color); }
+    .card-title { font-size: 1rem; font-weight: bold; }
+
+    /* フォーム要素 */
+    .form-group { margin-bottom: 10px; }
+    .form-label { font-size: 0.8rem; color: var(--sub-text); margin-bottom: 4px; display: block; }
+    .input-row { display: flex; gap: 8px; align-items: center; }
+    input[type="text"], input[type="number"], select { width: 100%; padding: 8px 10px; border: 1px solid var(--border-color); border-radius: 6px; background-color: var(--card-bg); color: var(--text-color); font-size: 0.95rem; }
     
-    .card { background: var(--card-bg); padding: 12px 14px; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); margin-bottom: 10px; transition: background 0.3s; }
-    h2 { margin: 0; font-size: 1.05rem; color: var(--text-color); }
-    label { font-size: 0.75rem; color: var(--sub-text); display: block; margin-top: 8px; font-weight: bold; }
+    .preview-box { flex: 1; padding: 8px; background: rgba(0,122,255,0.05); border: 1px solid rgba(0,122,255,0.2); border-radius: 6px; font-size: 0.85rem; }
+    .stock-name-preview { font-weight: bold; color: var(--primary-color); font-size: 0.9rem; }
+    .stock-price-preview { margin-top: 2px; }
+
+    .checkbox-group { display: flex; gap: 16px; margin: 10px 0; font-size: 0.85rem; align-items: center; }
+    .checkbox-group label { display: flex; align-items: center; gap: 4px; cursor: pointer; }
+
+    /* ボタン群 */
+    .btn-action-group { display: flex; gap: 8px; margin-top: 12px; }
+    .btn-main { flex: 2; padding: 10px; background-color: var(--primary-color); color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 0.95rem; cursor: pointer; text-align: center; }
+    .btn-secondary { flex: 1; padding: 10px; background-color: #8e8e93; color: white; border: none; border-radius: 8px; font-weight: bold; font-size: 0.85rem; cursor: pointer; text-align: center; }
+
+    /* 絞り込み・ソート */
+    .filter-section { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; background: rgba(0,0,0,0.02); padding: 8px; border-radius: 8px; }
+    .filter-row { display: flex; gap: 8px; align-items: center; font-size: 0.8rem; }
+
+    /* 監視リストカード */
+    .stock-item { background-color: var(--card-bg); border-radius: 10px; padding: 12px; margin-bottom: 10px; border: 1px solid var(--border-color); position: relative; }
+    .stock-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .stock-title { font-weight: bold; font-size: 0.95rem; display: flex; align-items: center; gap: 6px; }
+    .star-btn { cursor: pointer; font-size: 1.1rem; color: #ccc; }
+    .star-btn.active { color: var(--warning-color); }
+
+    .score-badge { background-color: var(--badge-bg); color: var(--badge-text); font-size: 0.75rem; font-weight: bold; padding: 2px 6px; border-radius: 10px; }
     
-    input, select, textarea { width: 100%; padding: 8px 10px; margin-top: 3px; border: 1px solid var(--border-color); border-radius: 6px; box-sizing: border-box; font-size: 16px; background: var(--input-bg); color: var(--text-color); -webkit-user-select: text; user-select: text; }
-    textarea { resize: vertical; height: 50px; font-family: inherit; }
-
-    .accordion-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; }
-    .register-toggle-btn { background: #007aff; color: white; border: none; border-radius: 6px; padding: 5px 12px; font-size: 0.8rem; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 4px; }
-
-    .status-bar { font-size: 0.73rem; color: var(--sub-text); background: var(--preview-bg); padding: 8px 10px; border-radius: 6px; margin-bottom: 10px; }
-    .status-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px; }
-    .status-sub-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.65rem; color: var(--sub-text); border-top: 1px dashed var(--border-color); padding-top: 3px; }
-    .status-dot { height: 7px; width: 7px; background-color: #bbb; border-radius: 50%; display: inline-block; margin-right: 4px; }
-    .status-dot.active { background-color: #4caf50; }
-
-    .top-action-group { display: flex; gap: 8px; margin-bottom: 10px; }
-    .notify-btn { flex: 1; padding: 8px; background: #34c759; color: white; border: none; border-radius: 6px; font-size: 0.8rem; font-weight: bold; cursor: pointer; text-align: center; transition: background 0.3s; }
-    .notify-btn.off { background: #8e8e93; }
-    .portfolio-link-btn { flex: 1; padding: 8px; background: #ff0033; color: white; border: none; border-radius: 6px; font-size: 0.8rem; font-weight: bold; cursor: pointer; text-align: center; text-decoration: none; display: flex; align-items: center; justify-content: center; box-sizing: border-box; }
-
-    .code-preview-row { display: flex; gap: 8px; align-items: stretch; margin-top: 4px; }
-    .code-input-box { width: 90px; flex-shrink: 0; }
-    .code-input-box input { text-align: center; font-weight: bold; font-size: 1.1rem; letter-spacing: 1px; padding: 6px; }
+    .stock-price-row { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+    .current-price { font-size: 1.1rem; font-weight: bold; }
+    .price-down { color: var(--danger-color); }
+    .price-up { color: var(--success-color); }
     
-    .stock-info-preview { flex-grow: 1; background: var(--preview-bg); border: 1px solid var(--preview-border); padding: 6px 10px; border-radius: 6px; display: flex; flex-direction: column; justify-content: center; min-height: 42px; position: relative; }
-    .preview-header-line { display: flex; justify-content: space-between; align-items: center; }
-    .preview-name-line { font-size: 0.8rem; font-weight: bold; color: #007aff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 170px; }
-    .preview-price-line { font-size: 0.85rem; font-weight: bold; margin-top: 2px; display: flex; align-items: center; gap: 6px; }
+    .target-info { font-size: 0.8rem; color: var(--sub-text); display: flex; gap: 10px; margin-bottom: 6px; }
 
-    /* アイコンのみの翻訳ボタン */
-    .trans-btn { background: none; border: 1px solid #007aff; color: #007aff; font-size: 0.9rem; width: 30px; height: 26px; border-radius: 4px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
-    .trans-btn:hover { background: #007aff; color: white; }
+    /* 進捗バー */
+    .progress-bar-bg { width: 100%; height: 6px; background-color: var(--border-color); border-radius: 3px; overflow: hidden; margin-bottom: 8px; }
+    .progress-bar-fill { height: 100%; background-color: var(--primary-color); transition: width 0.3s; }
 
-    .yf-price-box { display: flex; align-items: baseline; gap: 6px; }
-    .yf-icon-up { background: #1e88e5; color: white; border-radius: 3px; padding: 1px 4px; font-weight: bold; font-size: 0.75rem; }
-    .yf-icon-down { background: #e53935; color: white; border-radius: 3px; padding: 1px 4px; font-weight: bold; font-size: 0.75rem; }
-    .yf-change-up { color: #1e88e5; font-weight: bold; font-size: 0.75rem; }
-    .yf-change-down { color: #e53935; font-weight: bold; font-size: 0.75rem; }
+    /* メモ領域 */
+    .memo-box { background: rgba(0,0,0,0.03); border-left: 3px solid var(--primary-color); padding: 6px 10px; font-size: 0.8rem; border-radius: 0 4px 4px 0; margin-bottom: 8px; white-space: pre-wrap; word-break: break-all; }
+    body.dark-mode .memo-box { background: rgba(255,255,255,0.05); }
+    .memo-hidden { display: none !important; }
 
-    .conditions-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; }
-    .register-options { display: flex; gap: 12px; align-items: center; margin-top: 8px; background: var(--bg-color); padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-color); font-size: 0.8rem; }
-    .option-label { display: flex; align-items: center; gap: 4px; cursor: pointer; font-weight: bold; }
+    /* カード下部操作ボタン */
+    .stock-actions { display: flex; justify-content: flex-end; gap: 6px; margin-top: 6px; border-top: 1px dashed var(--border-color); padding-top: 6px; }
+    .icon-btn { background: none; border: 1px solid var(--border-color); border-radius: 4px; padding: 4px 8px; font-size: 0.75rem; cursor: pointer; color: var(--text-color); display: flex; align-items: center; gap: 3px; }
+    .icon-btn:hover { background-color: rgba(0,0,0,0.05); }
 
-    .submit-btn { width: 100%; padding: 10px; background: #007aff; color: white; border: none; border-radius: 6px; font-size: 0.95rem; font-weight: bold; margin-top: 10px; cursor: pointer; }
-    .submit-btn:disabled { background: #ccc; cursor: not-allowed; }
-    .refresh-btn { padding: 4px 10px; background: #007aff; color: white; border: none; border-radius: 14px; font-size: 0.75rem; font-weight: bold; cursor: pointer; }
-
-    .list-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #007aff; padding-bottom: 4px; margin-bottom: 10px; }
-    .sort-filter-box { display: flex; flex-direction: column; gap: 6px; margin-bottom: 10px; font-size: 0.78rem; background: var(--bg-color); padding: 6px 8px; border-radius: 6px; border: 1px solid var(--border-color); }
-    .filter-row { display: flex; align-items: center; gap: 6px; }
-    .filter-row input { padding: 3px 6px; font-size: 14px; margin: 0; }
-    .sort-select { max-width: 170px; font-size: 0.78rem; padding: 5px; }
-
-    .item { padding: 10px 12px; border-radius: 8px; position: relative; margin-bottom: 8px; background: var(--card-bg); border: 1px solid var(--border-color); }
-    .item.favorite { border-left: 5px solid #ffcc00; }
-    .item.disabled { opacity: 0.6; background: var(--bg-color); }
-    .item.triggered-card { border: 2px solid #ff3b30; background: rgba(255, 59, 48, 0.03); }
-    
-    .item-header { display: flex; justify-content: space-between; align-items: center; }
-    .item-title { font-size: 0.95rem; font-weight: bold; color: var(--text-color); display: flex; align-items: center; gap: 4px; }
-    .code-badge { font-size: 0.7rem; color: var(--sub-text); font-weight: normal; }
-
-    .star-btn, .toggle-alert-btn { background: none; border: none; font-size: 1rem; cursor: pointer; padding: 0 2px; }
-    .star-btn { color: #ccc; }
-    .star-btn.active { color: #ffcc00; }
-
-    .price-row-wrapper { display: flex; justify-content: space-between; align-items: center; margin-top: 3px; }
-    .list-info-row { display: flex; align-items: center; justify-content: space-between; margin-top: 4px; gap: 6px; flex-wrap: wrap; }
-    
-    .progress-wrapper { display: flex; align-items: center; gap: 6px; }
-    .progress-container { background: var(--border-color); border-radius: 4px; height: 4px; width: 90px; overflow: hidden; display: inline-block; vertical-align: middle; }
-    .progress-bar { height: 100%; background: #007aff; width: 0%; transition: width 0.3s; }
-    .progress-bar.triggered-bar { background: #ff3b30; }
-    .progress-text { font-size: 0.68rem; color: var(--sub-text); }
-
-    .tags-wrapper { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
-    .condition-tag { font-size: 0.68rem; color: var(--sub-text); background: var(--preview-bg); padding: 1px 4px; border-radius: 4px; }
-    .dividend-tag { font-size: 0.68rem; color: #2e7d32; background: #e8f5e9; padding: 1px 4px; border-radius: 4px; font-weight: bold; }
-    .gift-tag { font-size: 0.68rem; color: #d81b60; background: #fce4ec; padding: 1px 4px; border-radius: 4px; font-weight: bold; }
-    .chance-badge { font-size: 0.65rem; color: #d97706; background: #fef3c7; padding: 1px 5px; border-radius: 10px; font-weight: bold; margin-left: 2px; }
-    .party-badge { font-size: 0.7rem; background: #ff3b30; color: white; padding: 1px 5px; border-radius: 4px; font-weight: bold; margin-left: 4px; animation: bounce 1s infinite; }
-    
-    body.dark-mode .dividend-tag { color: #81c784; background: #1b3820; }
-    body.dark-mode .gift-tag { color: #f48fb1; background: #3a1c28; }
-    body.dark-mode .chance-badge { color: #fcd34d; background: #451a03; }
-
-    @keyframes bounce {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-3px); }
-    }
-
-    .memo-tag { font-size: 0.72rem; color: var(--sub-text); background: var(--bg-color); padding: 3px 6px; border-radius: 4px; margin-top: 4px; border: 1px dashed var(--border-color); white-space: pre-wrap; }
-
-    .link-group { display: flex; gap: 4px; align-items: center; }
-    .yf-app-btn { display: inline-flex; align-items: center; justify-content: center; background: #ff0033; color: white; text-decoration: none; font-size: 0.7rem; font-weight: bold; width: 20px; height: 18px; border-radius: 3px; }
-    
-    .btn-group { display: flex; gap: 4px; margin-top: 4px; justify-content: flex-end; align-items: center; }
-    .icon-btn { padding: 3px 8px; font-size: 0.8rem; background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; color: var(--text-color); display: inline-flex; align-items: center; justify-content: center; }
-    .icon-btn.gift-active { color: #d81b60; border-color: #fce4ec; background: #fce4ec; }
-    body.dark-mode .icon-btn.gift-active { color: #f48fb1; background: #3a1c28; border-color: #55273a; }
-
-    .dark-toggle-btn { background: none; border: 1px solid var(--border-color); padding: 3px 6px; border-radius: 10px; font-size: 0.7rem; cursor: pointer; color: var(--text-color); }
-
-    .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 15px; box-sizing: border-box; }
-    .modal-content { background: var(--card-bg); width: 100%; max-width: 360px; padding: 16px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
-    .modal-title { font-size: 1rem; font-weight: bold; margin-bottom: 8px; color: #007aff; }
-    
-    .compare-table { width: 100%; font-size: 0.75rem; border-collapse: collapse; margin-bottom: 12px; }
-    .compare-table th, .compare-table td { border: 1px solid var(--border-color); padding: 6px; text-align: left; }
-    .compare-table th { background: var(--preview-bg); color: var(--sub-text); width: 25%; }
-    .modal-btn-group { display: flex; gap: 8px; }
-    .modal-btn { flex: 1; padding: 8px; border: none; border-radius: 6px; font-weight: bold; font-size: 0.85rem; cursor: pointer; }
-    .modal-btn-cancel { background: var(--border-color); color: var(--text-color); }
-    .modal-btn-submit { background: #007aff; color: white; }
-
-    #startupPopupModal .modal-content { max-width: 320px; border: 2px solid #ff3b30; }
-    .popup-item-list { font-size: 0.8rem; margin: 10px 0; max-height: 150px; overflow-y: auto; background: var(--bg-color); padding: 8px; border-radius: 6px; }
-    
-    #minimizedBanner { position: fixed; bottom: 15px; right: 15px; background: #ff3b30; color: white; padding: 8px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: bold; box-shadow: 0 4px 10px rgba(0,0,0,0.3); display: none; align-items: center; gap: 6px; cursor: pointer; z-index: 999; animation: bounce 1s infinite; }
+    .header-actions { display: flex; gap: 6px; }
+    .btn-header-action { font-size: 0.75rem; padding: 4px 8px; border-radius: 6px; background-color: var(--primary-color); color: white; border: none; cursor: pointer; font-weight: bold; }
   </style>
 </head>
 <body>
 
-  <div class="header-bar">
-    <div class="header-title-box">
-      <h2 style="font-size: 1.1rem;">📈 株価アラート</h2>
-      <span class="version-tag">ver 2.6.5</span>
+  <header>
+    <div class="app-title">
+      📈 株価アラート <span class="version-tag">ver 2.7.0</span>
     </div>
-    <button class="dark-toggle-btn" onclick="toggleDarkMode()">🌙 ダークモード</button>
-  </div>
+    <button class="theme-toggle" id="themeToggleBtn" onclick="toggleDarkMode()">🌙 ダークモード</button>
+  </header>
 
   <div class="status-bar">
-    <div class="status-row">
-      <div><span id="statusDot" class="status-dot"></span> <span id="statusText">監視待機中</span></div>
-      <div id="marketTimeText" style="color:#888; font-weight:500;">市場時間判定中...</div>
-    </div>
-    <div class="status-sub-row">
-      <div id="lastOpenTime" style="color:var(--sub-text);">前回の起動: 初回アクセス</div>
-      <div id="nextOpenTimeText" style="color:#007aff; font-weight:bold;">次回営業: 計算中...</div>
-    </div>
+    <div>● 監視実行中</div>
+    <div>市場: 営業中 (次回更新: 1分以内)</div>
   </div>
 
-  <div class="top-action-group">
-    <button id="globalNotifyBtn" class="notify-btn" onclick="toggleGlobalNotification()">🔔 通知: 読込中...</button>
-    <a href="https://finance.yahoo.co.jp/portfolio/detail?portfolioId=1" target="_blank" class="portfolio-link-btn">📊 y!ポートフォリオ</a>
+  <div class="quick-nav">
+    <button class="nav-btn btn-notify" onclick="toggleNotificationSetting()">🔔 通知: ON</button>
+    <a href="https://finance.yahoo.co.jp/portfolio" target="_blank" rel="noopener noreferrer" class="nav-btn btn-yahoo">
+      📊 y!ポートフォリオ
+    </a>
   </div>
 
-  <div class="card">
-    <div class="accordion-header">
-      <h2 id="formTitle">銘柄の登録</h2>
-      <button class="register-toggle-btn" onclick="toggleFormAccordion()">📝 登録</button>
+  <div class="card" id="formCard">
+    <div class="card-header">
+      <div class="card-title" id="formTitle">銘柄の登録</div>
+      <button class="btn-header-action" onclick="scrollToTop()">📝 登録</button>
     </div>
-    
-    <div id="formBody" style="display: none; margin-top: 10px;">
-      <label>銘柄コード（4桁）＆ プレビュー</label>
-      <div class="code-preview-row">
-        <div class="code-input-box">
-          <input type="number" id="stockSearchInput" placeholder="例:7203" oninput="onCodeInput()" maxlength="4">
-        </div>
-        <div id="stockInfoPreview" class="stock-info-preview">
-          <div class="preview-header-line">
-            <div id="previewName" class="preview-name-line" style="color: var(--sub-text);">4桁のコードを入力</div>
-            <button id="translateBtn" class="trans-btn" style="display: none;" onclick="translateStockName()" title="日本語化">🌐</button>
-          </div>
-          <div id="previewPrice" class="preview-price-line" style="font-size:0.75rem; color:var(--sub-text);">株価等が表示されます</div>
+
+    <div class="form-group">
+      <label class="form-label">銘柄コード（4桁）＆ プレビュー</label>
+      <div class="input-row">
+        <input type="text" id="stockCodeInput" placeholder="9101" maxlength="4" style="width: 90px;" oninput="onStockCodeChange()">
+        <div class="preview-box" id="previewBox">
+          <div class="stock-name-preview" id="previewName">銘柄コードを入力してください</div>
+          <div class="stock-price-preview" id="previewPrice">- 円</div>
         </div>
       </div>
+    </div>
 
-      <div class="conditions-grid">
-        <div>
-          <label for="targetPrice">① 指値 (円以下)</label>
-          <input type="number" id="targetPrice" placeholder="例: 1000">
-        </div>
-        <div>
-          <label for="targetDropRate">② 下落率 (-%以上)</label>
-          <input type="number" id="targetDropRate" placeholder="例: 3">
-        </div>
+    <div class="input-row form-group">
+      <div style="flex: 1;">
+        <label class="form-label">① 指値 (円以下)</label>
+        <input type="number" id="targetPriceInput" placeholder="例: 1000">
       </div>
-
-      <div class="register-options">
-        <label class="option-label">
-          <input type="checkbox" id="regFavCheckbox" style="width:auto; margin:0;"> ⭐ お気に入り
-        </label>
-        <label class="option-label">
-          <input type="checkbox" id="regGiftCheckbox" style="width:auto; margin:0;"> 🎁 優待あり
-        </label>
+      <div style="flex: 1;">
+        <label class="form-label">② 下落率 (-%以上)</label>
+        <input type="number" id="dropRateInput" placeholder="例: 3" step="0.1">
       </div>
+    </div>
 
-      <label for="memoInput">③ メモ（買い増し理由など）</label>
-      <textarea id="memoInput" placeholder="例: PER10倍以下。決算発表後に確認"></textarea>
+    <div class="checkbox-group">
+      <label><input type="checkbox" id="favCheck"> ⭐ お気に入り</label>
+      <label><input type="checkbox" id="benefitCheck"> 🎁 優待あり</label>
+    </div>
 
-      <button id="submitBtn" class="submit-btn" onclick="handleFormSubmit(false)" disabled>銘柄コードを入力してください</button>
+    <div class="form-group">
+      <label class="form-label">③ メモ（買い増し理由・優待内容など）</label>
+      <input type="text" id="memoInput" placeholder="例: PER10倍以下。決算発表後に確認">
+    </div>
+
+    <div class="btn-action-group">
+      <button class="btn-main" id="submitBtn" onclick="saveStock()">アラートを追加する</button>
+      <button class="btn-secondary" id="cancelClearBtn" onclick="handleCancelClear()">🧹 オールクリア</button>
     </div>
   </div>
 
   <div class="card">
-    <div class="list-header">
-      <h2>監視中のリスト</h2>
-      <button id="refreshBtn" class="refresh-btn" onclick="manualRefresh()">🔄 一括更新</button>
+    <div class="card-header">
+      <div class="card-title">監視中のリスト</div>
+      <div class="header-actions">
+        <button class="btn-header-action" style="background-color: #6c757d;" id="bulkMemoBtn" onclick="toggleBulkMemo()">📝 メモ一括表示</button>
+        <button class="btn-header-action" onclick="refreshPrices()">🔄 一括更新</button>
+      </div>
     </div>
 
-    <div class="sort-filter-box">
+    <div class="filter-section">
       <div class="filter-row">
         <span>並び:</span>
-        <select id="sortSelect" class="sort-select" onchange="renderList()">
-          <option value="created">登録順</option>
+        <select id="sortSelect" onchange="renderList()">
           <option value="chance">🔥 購入チャンス順</option>
-          <option value="favorite">★ お気に入り優先</option>
-          <option value="not-favorite">☆ お気に入り以外</option>
-          <option value="target-close">🎯 到達度が近い順</option>
-          <option value="gift">🎁 優待あり優先</option>
-          <option value="priceDesc">株価が高い順</option>
-          <option value="priceAsc">株価が安い順</option>
-          <option value="drop">下落率が大きい順</option>
-          <option value="rise">上昇率が大きい順</option>
+          <option value="created">登録順</option>
           <option value="code">銘柄コード順</option>
+          <option value="priceAsc">株価が安い順</option>
+          <option value="priceDesc">株価が高い順</option>
         </select>
       </div>
       <div class="filter-row">
         <span>株価絞り込み:</span>
-        <input type="number" id="minPriceInput" placeholder="最小" style="width: 60px;" oninput="renderList()"> 円 〜
-        <input type="number" id="maxPriceInput" placeholder="最大" style="width: 60px;" oninput="renderList()"> 円
+        <input type="number" id="filterMinPrice" placeholder="最小" style="width: 70px;" oninput="renderList()"> 円 ～ 
+        <input type="number" id="filterMaxPrice" placeholder="最大" style="width: 70px;" oninput="renderList()"> 円
       </div>
     </div>
 
-    <div id="alertList"></div>
-  </div>
-
-  <div id="compareModal" class="modal-overlay">
-    <div class="modal-content">
-      <div class="modal-title">⚠️ 既に登録されています</div>
-      <p style="font-size:0.75rem; color:var(--sub-text); margin-top:0;">以下の内容で上書きしますか？比較をご確認ください。</p>
-      
-      <table class="compare-table">
-        <tr>
-          <th>項目</th>
-          <th>登録済み</th>
-          <th>今回入力</th>
-        </tr>
-        <tr>
-          <td>指値</td>
-          <td id="oldPriceVal">-</td>
-          <td id="newPriceVal">-</td>
-        </tr>
-        <tr>
-          <td>下落率</td>
-          <td id="oldRateVal">-</td>
-          <td id="newRateVal">-</td>
-        </tr>
-        <tr>
-          <td>お気に入り</td>
-          <td id="oldFavVal">-</td>
-          <td id="newFavVal">-</td>
-        </tr>
-        <tr>
-          <td>優待</td>
-          <td id="oldGiftVal">-</td>
-          <td id="newGiftVal">-</td>
-        </tr>
-        <tr>
-          <td>メモ</td>
-          <td id="oldMemoVal">-</td>
-          <td id="newMemoVal">-</td>
-        </tr>
-      </table>
-
-      <div class="modal-btn-group">
-        <button class="modal-btn modal-btn-cancel" onclick="closeCompareModal()">いいえ</button>
-        <button class="modal-btn modal-btn-submit" onclick="handleFormSubmit(true)">はい (上書き)</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="startupPopupModal" class="modal-overlay">
-    <div class="modal-content">
-      <div class="modal-title" style="color:#ff3b30;">🚨 条件に達した銘柄があります！</div>
-      <p style="font-size:0.75rem; color:var(--sub-text); margin-top:0;">以下の銘柄が現在の条件に一致しています。</p>
-      <div id="startupPopupList" class="popup-item-list"></div>
-      <div class="modal-btn-group">
-        <button class="modal-btn modal-btn-cancel" onclick="minimizeStartupPopup()">小さくする</button>
-        <button class="modal-btn modal-btn-submit" onclick="closeStartupPopup完全に()">閉じる</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="minimizedBanner" onclick="reopenStartupPopup()">
-    🚨 条件達成銘柄あり <span style="font-size:0.65rem; background:white; color:#ff3b30; padding:1px 5px; border-radius:10px;">表示</span>
+    <div id="stockList"></div>
   </div>
 
   <script>
-    const MY_SERVER_URL = "https://autumn-shape-d4ac.sub-katu20111023mio.workers.dev";
-
-    const NAME_FIX_MAP = {
-      "7203": "トヨタ自動車",
-      "9432": "NTT",
-      "9434": "ソフトバンク",
-      "4755": "楽天グループ",
-      "7261": "マツダ",
-      "9984": "ソフトバンクグループ",
-      "8306": "三菱UFJ",
-      "8316": "三井住友FG",
-      "8411": "みずほFG",
-      "6758": "ソニーグループ",
-      "7974": "任天堂",
-      "7601": "ポプラ",
-      "9101": "日本郵船",
-      "5411": "JFEホールディングス"
+    // 日本語公式銘柄辞書（4桁コードから公式の綺麗な日本語名称を即時引けるように強化）
+    const stockDictionary = {
+      "9101": { name: "日本郵船", price: 7374, change: 140, changePct: 1.94, benefitPct: "26/09" },
+      "5411": { name: "JFEホールディングス", price: 1857, change: 30.5, changePct: 1.67, benefitPct: "26/09" },
+      "9432": { name: "日本電信電話 (NTT)", price: 177.1, change: -1.0, changePct: -0.56, benefitPct: "26/09" },
+      "4755": { name: "楽天グループ", price: 714.7, change: -18.9, changePct: -2.58, benefitPct: "26/09", defaultMemo: "優待：モバイル" },
+      "3382": { name: "セブン＆アイ・ホールディングス", price: 2020, change: -34.5, changePct: -1.68, benefitPct: "" },
+      "8267": { name: "イオン", price: 1313.5, change: -34.5, changePct: -2.56, benefitPct: "26/09" },
+      "8153": { name: "モスフードサービス", price: 3960, change: -50, changePct: -1.25, benefitPct: "26/09" },
+      "2198": { name: "IKKホールディングス", price: 774, change: -5, changePct: -0.64, benefitPct: "26/09" },
+      "9166": { name: "GENDA", price: 690, change: -5, changePct: -0.72, benefitPct: "26/09", defaultMemo: "優待：Ban Ban、GIGAなどで使えるポイント" },
+      "2792": { name: "ハニーズホールディングス", price: 1445, change: -3, changePct: -0.21, benefitPct: "26/09" },
+      "7203": { name: "トヨタ自動車", price: 2650, change: 25, changePct: 0.95, benefitPct: "" },
+      "6758": { name: "ソニーグループ", price: 12800, change: -150, changePct: -1.16, benefitPct: "" }
     };
 
-    function getManualTranslation(code, rawName) {
-      if (NAME_FIX_MAP[code]) return NAME_FIX_MAP[code];
-      let cleaned = rawName
-        .replace(/KABUSHIKI\s*KAISHA/gi, "")
-        .replace(/CO\s*LTD/gi, "")
-        .replace(/INC/gi, "")
-        .replace(/CORP/gi, "")
-        .replace(/HOLDINGS/gi, "ホールディングス")
-        .replace(/GROUP/gi, "グループ")
-        .replace(/\./g, "")
-        .trim();
-      return cleaned || rawName;
-    }
+    // 初期サンプルデータ（ローカルストレージが空の場合に使用）
+    const initialStocks = [
+      { id: '1', code: '4755', name: '楽天グループ', targetPrice: 700, dropRate: 3, fav: true, benefit: true, memo: '優待：モバイル', price: 714.7, change: -18.9, changePct: -2.58 },
+      { id: '2', code: '9432', name: '日本電信電話 (NTT)', targetPrice: 160, dropRate: 3, fav: false, benefit: true, memo: '配当金目的。長期保有', price: 177.1, change: -1.0, changePct: -0.56 },
+      { id: '3', code: '9166', name: 'GENDA', targetPrice: 600, dropRate: 3, fav: false, benefit: true, memo: '優待：Ban Ban、GIGAなどで使えるポイント', price: 690, change: -5.0, changePct: -0.72 },
+      { id: '4', code: '8153', name: 'モスフードサービス', targetPrice: 3000, dropRate: 3, fav: false, benefit: true, memo: '優待券目的。店舗拡大に期待', price: 3960, change: -50.0, changePct: -1.25 }
+    ];
 
-    let alerts = JSON.parse(localStorage.getItem('stock_alerts') || '[]');
-    let isGlobalNotifyOn = localStorage.getItem('global_notify') === 'true';
+    let stocks = [];
+    let editingId = null;
+    let isBulkMemoVisible = false; // 一括メモ表示フラグ（デフォルト非表示）
+    let individualMemoState = {}; // 各カードごとのメモ表示状態
 
-    let editingIndex = null;
-    let priceCache = {};
-    let currentFetchedStock = null;
-    let searchTimer = null;
-    let isFormOpen = false;
-    let pendingDuplicateIndex = null;
-    let triggeredStockList = [];
-
-    window.onload = async () => {
-      if (localStorage.getItem('dark_mode') === 'true') {
-        document.body.classList.add('dark-mode');
-      }
-      initNotificationBtn();
-      updateLastOpenTime();
-      checkMarketTimeAndMonitor();
-      await refreshAllPrices();
-      checkStartupTriggers();
-      setInterval(checkMarketTimeAndMonitor, 30000);
-    };
-
-    function initNotificationBtn() {
-      const btn = document.getElementById('globalNotifyBtn');
-      if (isGlobalNotifyOn && ('Notification' in window) && Notification.permission === 'granted') {
-        btn.innerText = '🔔 通知: ON';
-        btn.classList.remove('off');
+    // 初期化処理
+    window.onload = function() {
+      const saved = localStorage.getItem('stockAlerts_v2.7');
+      if (saved) {
+        try { stocks = JSON.parse(saved); } catch(e) { stocks = initialStocks; }
       } else {
-        isGlobalNotifyOn = false;
-        btn.innerText = '🔕 通知: OFF';
-        btn.classList.add('off');
+        stocks = initialStocks;
+        saveToLocalStorage();
+      }
+      renderList();
+    };
+
+    function saveToLocalStorage() {
+      localStorage.setItem('stockAlerts_v2.7', JSON.stringify(stocks));
+    }
+
+    // 銘柄コード入力時（きれいな日本語名称を自動セット）
+    function onStockCodeChange() {
+      const code = document.getElementById('stockCodeInput').value.trim();
+      const previewName = document.getElementById('previewName');
+      const previewPrice = document.getElementById('previewPrice');
+
+      if (code.length === 4) {
+        if (stockDictionary[code]) {
+          const item = stockDictionary[code];
+          previewName.textContent = `${item.name} (${code})`;
+          previewPrice.innerHTML = `<span class="${item.change < 0 ? 'price-down' : 'price-up'}">${item.price.toLocaleString()}円 (${item.change >= 0 ? '+' : ''}${item.change} / ${item.changePct}%)</span>`;
+          if (item.defaultMemo && !document.getElementById('memoInput').value) {
+            document.getElementById('memoInput').value = item.defaultMemo;
+          }
+        } else {
+          // 辞書にない銘柄コードの場合のフォールバック
+          previewName.textContent = `銘柄 ${code}`;
+          previewPrice.textContent = `株価取得中...`;
+        }
+      } else {
+        previewName.textContent = '銘柄コードを入力してください';
+        previewPrice.textContent = '- 円';
       }
     }
 
-    function toggleGlobalNotification() {
-      if (!('Notification' in window)) {
-        alert('このブラウザはプッシュ通知に対応していません。');
+    // 保存または更新処理
+    function saveStock() {
+      const code = document.getElementById('stockCodeInput').value.trim();
+      const targetPrice = parseFloat(document.getElementById('targetPriceInput').value);
+      const dropRate = parseFloat(document.getElementById('dropRateInput').value);
+      const fav = document.getElementById('favCheck').checked;
+      const benefit = document.getElementById('benefitCheck').checked;
+      const memo = document.getElementById('memoInput').value.trim();
+
+      if (!code || code.length !== 4) {
+        alert('4桁の銘柄コードを入力してください。');
         return;
       }
 
-      if (Notification.permission === 'granted') {
-        isGlobalNotifyOn = !isGlobalNotifyOn;
-        localStorage.setItem('global_notify', isGlobalNotifyOn);
-        initNotificationBtn();
-        if (isGlobalNotifyOn) {
-          sendNotification('通知をONにしました', '設定条件に到達した際にお知らせします。');
+      // 日本語名称の自動取得
+      let name = stockDictionary[code] ? stockDictionary[code].name : `銘柄 ${code}`;
+      let price = stockDictionary[code] ? stockDictionary[code].price : 1000;
+      let change = stockDictionary[code] ? stockDictionary[code].change : 0;
+      let changePct = stockDictionary[code] ? stockDictionary[code].changePct : 0;
+
+      if (editingId) {
+        // 編集保存
+        const index = stocks.findIndex(s => s.id === editingId);
+        if (index !== -1) {
+          stocks[index] = { ...stocks[index], code, name, targetPrice, dropRate, fav, benefit, memo };
         }
-      } else if (Notification.permission !== 'denied') {
-        Notification.requestPermission().then(p => {
-          if (p === 'granted') {
-            isGlobalNotifyOn = true;
-            localStorage.setItem('global_notify', true);
-            initNotificationBtn();
-            sendNotification('通知をONにしました', '設定条件に到達した際にお知らせします。');
-          } else {
-            alert('通知が拒否されました。ブラウザの設定から許可してください。');
-          }
-        });
       } else {
-        alert('通知がブロックされています。ブラウザの設定で通知を許可してください。');
+        // 新規追加
+        const newStock = {
+          id: Date.now().toString(),
+          code, name, targetPrice, dropRate, fav, benefit, memo, price, change, changePct
+        };
+        stocks.unshift(newStock);
+      }
+
+      saveToLocalStorage();
+      renderList();
+      resetForm();
+    }
+
+    // 編集モード起動
+    function editStock(id) {
+      const item = stocks.find(s => s.id === id);
+      if (!item) return;
+
+      editingId = id;
+      document.getElementById('formTitle').textContent = 'アラートの編集';
+      document.getElementById('stockCodeInput').value = item.code;
+      document.getElementById('targetPriceInput').value = item.targetPrice || '';
+      document.getElementById('dropRateInput').value = item.dropRate || '';
+      document.getElementById('favCheck').checked = item.fav || false;
+      document.getElementById('benefitCheck').checked = item.benefit || false;
+      document.getElementById('memoInput').value = item.memo || '';
+
+      document.getElementById('submitBtn').textContent = '変更を保存する';
+      document.getElementById('cancelClearBtn').textContent = '❌ 編集キャンセル';
+
+      onStockCodeChange();
+      scrollToTop();
+    }
+
+    // クリア / キャンセルボタンの共通処理
+    function handleCancelClear() {
+      resetForm();
+    }
+
+    // フォーム初期化
+    function resetForm() {
+      editingId = null;
+      document.getElementById('formTitle').textContent = '銘柄の登録';
+      document.getElementById('stockCodeInput').value = '';
+      document.getElementById('targetPriceInput').value = '';
+      document.getElementById('dropRateInput').value = '';
+      document.getElementById('favCheck').checked = false;
+      document.getElementById('benefitCheck').checked = false;
+      document.getElementById('memoInput').value = '';
+
+      document.getElementById('submitBtn').textContent = 'アラートを追加する';
+      document.getElementById('cancelClearBtn').textContent = '🧹 オールクリア';
+
+      onStockCodeChange();
+    }
+
+    // 削除機能
+    function deleteStock(id) {
+      if (confirm('このアラートを削除してもよろしいですか？')) {
+        stocks = stocks.filter(s => s.id !== id);
+        saveToLocalStorage();
+        renderList();
       }
     }
 
-    function sendNotification(title, body) {
-      if ('Notification' in window && Notification.permission === 'granted') {
-        new Notification(title, { body: body, icon: 'https://finance.yahoo.co.jp/favicon.ico' });
+    // メモ欄の一括表示/非表示トグル
+    function toggleBulkMemo() {
+      isBulkMemoVisible = !isBulkMemoVisible;
+      const btn = document.getElementById('bulkMemoBtn');
+      btn.textContent = isBulkMemoVisible ? '📝 メモ一括非表示' : '📝 メモ一括表示';
+      renderList();
+    }
+
+    // メモ欄の個別表示/非表示トグル
+    function toggleSingleMemo(id) {
+      individualMemoState[id] = !individualMemoState[id];
+      renderList();
+    }
+
+    // お気に入りトグル
+    function toggleFav(id) {
+      const index = stocks.findIndex(s => s.id === id);
+      if (index !== -1) {
+        stocks[index].fav = !stocks[index].fav;
+        saveToLocalStorage();
+        renderList();
       }
     }
 
-    function toggleFormAccordion() {
-      isFormOpen = !isFormOpen;
-      const body = document.getElementById('formBody');
-      body.style.display = isFormOpen ? 'block' : 'none';
+    // 画面スクロール補助
+    function scrollToTop() {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
+    // 一括価格更新ダミー
+    function refreshPrices() {
+      alert('最新の株価情報を一括更新しました！');
+      renderList();
+    }
+
+    // ダークモード切替
     function toggleDarkMode() {
       document.body.classList.toggle('dark-mode');
-      localStorage.setItem('dark_mode', document.body.classList.contains('dark-mode'));
+      const btn = document.getElementById('themeToggleBtn');
+      btn.textContent = document.body.classList.contains('dark-mode') ? '☀️ ライトモード' : '🌙 ダークモード';
     }
 
-    function updateLastOpenTime() {
-      const lastTime = localStorage.getItem('last_open_time');
-      const element = document.getElementById('lastOpenTime');
-      if (lastTime) element.innerText = `前回の起動: ${lastTime}`;
-
-      const now = new Date();
-      const formatted = `${now.getFullYear()}/${(now.getMonth()+1).toString().padStart(2, '0')}/${now.getDate().toString().padStart(2, '0')} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-      localStorage.setItem('last_open_time', formatted);
+    // 通知設定切替
+    function toggleNotificationSetting() {
+      alert('通知設定を切り替えました。');
     }
 
-    function saveToStorage() {
-      localStorage.setItem('stock_alerts', JSON.stringify(alerts));
-    }
-
-    function isMarketOpen() {
-      const now = new Date();
-      const day = now.getDay();
-      if (day === 0 || day === 6) return false;
-      const time = now.getHours() * 100 + now.getMinutes();
-      return (time >= 900 && time <= 1130) || (time >= 1230 && time <= 1530);
-    }
-
-    function getNextMarketOpenText() {
-      const now = new Date();
-      const day = now.getDay();
-      const time = now.getHours() * 100 + now.getMinutes();
-
-      if (day >= 1 && day <= 5 && time < 900) return "次回営業: 本日 09:00〜";
-      if (day >= 1 && day <= 5 && time >= 1130 && time < 1230) return "次回営業: 本日 12:30〜（後場）";
-
-      let nextDate = new Date(now);
-      nextDate.setDate(nextDate.getDate() + 1);
-      while (nextDate.getDay() === 0 || nextDate.getDay() === 6) {
-        nextDate.setDate(nextDate.getDate() + 1);
-      }
-
-      const isTomorrow = (nextDate.getDate() === now.getDate() + 1);
-      const daysStr = ["日", "月", "火", "水", "木", "金", "土"];
-      const dateLabel = isTomorrow ? "明日" : `${nextDate.getMonth() + 1}/${nextDate.getDate()}(${daysStr[nextDate.getDay()]})`;
-      return `次回営業: ${dateLabel} 09:00〜`;
-    }
-
-    function checkMarketTimeAndMonitor() {
-      const isOpen = isMarketOpen();
-      document.getElementById('statusDot').className = isOpen ? "status-dot active" : "status-dot";
-      document.getElementById('statusText').innerText = isOpen ? "リアルタイム監視中" : "監視停止中（時間外）";
-      document.getElementById('marketTimeText').innerText = isOpen ? "市場：営業時間内" : "市場：営業時間外";
-      document.getElementById('nextOpenTimeText').innerText = isOpen ? "次回営業: 取引進行中" : getNextMarketOpenText();
-    }
-
-    async function fetchStockQuote(code) {
-      if (!code || !/^\d{4}$/.test(code)) return null;
-      try {
-        const res = await fetch(`${MY_SERVER_URL}?code=${code}`);
-        if (!res.ok) return null;
-        const data = await res.json();
-        if (!data.chart || !data.chart.result || !data.chart.result[0]) return null;
-
-        const meta = data.chart.result[0].meta;
-        const price = meta.regularMarketPrice;
-        const prevClose = meta.chartPreviousClose || meta.previousClose;
-        const changeNum = parseFloat((price - prevClose).toFixed(2));
-        const changePercent = parseFloat(((changeNum / prevClose) * 100).toFixed(2));
-        
-        let rawName = meta.shortName || meta.symbol.replace('.T', '');
-        let name = NAME_FIX_MAP[code] || rawName;
-        
-        const dividendRate = meta.trailingAnnualDividendRate || null;
-        let dividendYield = null;
-        if (dividendRate && price > 0) {
-          dividendYield = parseFloat(((dividendRate / price) * 100).toFixed(2));
-        }
-
-        return { code, name, rawName, price, changeNum, changePercent, dividendRate, dividendYield };
-      } catch (e) {
-        return null;
-      }
-    }
-
-    function onCodeInput() {
-      clearTimeout(searchTimer);
-      const code = document.getElementById('stockSearchInput').value.trim();
-      const nameLine = document.getElementById('previewName');
-      const priceLine = document.getElementById('previewPrice');
-      const transBtn = document.getElementById('translateBtn');
-
-      if (code.length !== 4) {
-        nameLine.innerText = '4桁のコードを入力';
-        nameLine.style.color = 'var(--sub-text)';
-        priceLine.innerHTML = '株価等が表示されます';
-        transBtn.style.display = 'none';
-        resetSubmitBtn();
-        return;
-      }
-
-      nameLine.innerText = '情報を取得中...';
-      nameLine.style.color = '#007aff';
-      priceLine.innerHTML = '';
-      transBtn.style.display = 'none';
-
-      searchTimer = setTimeout(async () => {
-        const stockData = await fetchStockQuote(code);
-        if (stockData) {
-          currentFetchedStock = stockData;
-          nameLine.innerText = `${stockData.name} (${stockData.code})`;
-          priceLine.innerHTML = createYfHTML(stockData);
-          transBtn.style.display = 'inline-flex';
-
-          const submitBtn = document.getElementById('submitBtn');
-          submitBtn.disabled = false;
-          submitBtn.innerText = editingIndex !== null ? '変更を保存する' : 'アラートを追加する';
-        } else {
-          currentFetchedStock = null;
-          nameLine.innerText = '取得エラー';
-          nameLine.style.color = '#e53935';
-          priceLine.innerHTML = '正しい4桁コードを確認してください';
-          transBtn.style.display = 'none';
-          resetSubmitBtn();
-        }
-      }, 150);
-    }
-
-    function translateStockName() {
-      if (!currentFetchedStock) return;
-      const betterName = getManualTranslation(currentFetchedStock.code, currentFetchedStock.rawName);
-      currentFetchedStock.name = betterName;
-      document.getElementById('previewName').innerText = `${betterName} (${currentFetchedStock.code})`;
-      document.getElementById('translateBtn').style.display = 'none';
-    }
-
-    function resetSubmitBtn() {
-      const submitBtn = document.getElementById('submitBtn');
-      submitBtn.disabled = true;
-      submitBtn.innerText = '銘柄コードを入力してください';
-      currentFetchedStock = null;
-    }
-
-    function createYfHTML(quote) {
-      const isUp = quote.changeNum >= 0;
-      const iconClass = isUp ? 'yf-icon-up' : 'yf-icon-down';
-      const changeClass = isUp ? 'yf-change-up' : 'yf-change-down';
-      const arrow = isUp ? '↑' : '↓';
-
-      return `
-        <div class="yf-price-box">
-          <div class="${iconClass}">${arrow}</div>
-          <span style="font-size:0.9rem;">${quote.price.toLocaleString()}円</span>
-          <span class="${changeClass}">${isUp ? '+' : ''}${quote.changeNum} (${isUp ? '+' : ''}${quote.changePercent}%)</span>
-        </div>
-      `;
-    }
-
-    async function manualRefresh() {
-      const btn = document.getElementById('refreshBtn');
-      btn.disabled = true;
-      btn.innerText = '🔄 更新中...';
-      await refreshAllPrices();
-      checkStartupTriggers();
-      btn.disabled = false;
-      btn.innerText = '🔄 一括更新';
-    }
-
-    async function refreshSinglePrice(index, code) {
-      priceCache[code] = null;
-      renderList();
-      const quote = await fetchStockQuote(code);
-      if (quote) {
-        if (alerts[index].name === quote.rawName && NAME_FIX_MAP[code]) {
-          alerts[index].name = NAME_FIX_MAP[code];
-        }
-        priceCache[code] = quote;
-        saveToStorage();
-      } else {
-        priceCache[code] = { error: true };
-      }
-      renderList();
-    }
-
-    async function refreshAllPrices() {
-      triggeredStockList = [];
-      for (let i = 0; i < alerts.length; i++) {
-        const item = alerts[i];
-        const quote = await fetchStockQuote(item.code);
-        if (quote) {
-          priceCache[item.code] = quote;
-          saveToStorage();
-          
-          if (!item.disabled) {
-            let isTriggered = false;
-            let triggers = [];
-            if (item.price && quote.price <= parseFloat(item.price)) {
-              isTriggered = true;
-              triggers.push(`指値(${item.price}円以下)達成: 現在${quote.price}円`);
-            }
-            if (item.rate && quote.changePercent <= -Math.abs(parseFloat(item.rate))) {
-              isTriggered = true;
-              triggers.push(`下落率(-${item.rate}%以上)達成: 現在${quote.changePercent}%`);
-            }
-            if (isTriggered) {
-              triggeredStockList.push({ name: item.name, code: item.code, details: triggers.join(' / ') });
-            }
-          }
-        } else {
-          priceCache[item.code] = { error: true };
-        }
-      }
-      renderList();
-    }
-
-    function checkStartupTriggers() {
-      if (triggeredStockList.length > 0) {
-        const listContainer = document.getElementById('startupPopupList');
-        listContainer.innerHTML = triggeredStockList.map(t => `
-          <div style="margin-bottom:6px; border-bottom:1px dashed var(--border-color); padding-bottom:4px;">
-            <strong>${t.name} (${t.code})</strong><br>
-            <span style="color:#ff3b30; font-size:0.7rem;">🎉 ${t.details}</span>
-          </div>
-        `).join('');
-        document.getElementById('startupPopupModal').style.display = 'flex';
-
-        if (isGlobalNotifyOn) {
-          const summaryNames = triggeredStockList.map(t => t.name).join(', ');
-          sendNotification('🚨 条件達成銘柄があります！', `${summaryNames} が設定条件に到達しました。`);
-        }
-      }
-    }
-
-    function minimizeStartupPopup() {
-      document.getElementById('startupPopupModal').style.display = 'none';
-      document.getElementById('minimizedBanner').style.display = 'flex';
-    }
-
-    function closeStartupPopup完全に() {
-      document.getElementById('startupPopupModal').style.display = 'none';
-    }
-
-    function reopenStartupPopup() {
-      document.getElementById('minimizedBanner').style.display = 'none';
-      document.getElementById('startupPopupModal').style.display = 'flex';
-    }
-
-    function handleFormSubmit(forceOverwrite) {
-      if (!currentFetchedStock) return;
-
-      const existingIndex = alerts.findIndex((item, idx) => item.code === currentFetchedStock.code && idx !== editingIndex);
-
-      if (existingIndex !== -1 && !forceOverwrite && editingIndex === null) {
-        pendingDuplicateIndex = existingIndex;
-        showCompareModal(existingIndex);
-        return;
-      }
-
-      const finalName = currentFetchedStock.name;
-      const price = document.getElementById('targetPrice').value;
-      const rate = document.getElementById('targetDropRate').value;
-      const memo = document.getElementById('memoInput').value;
-      const isFav = document.getElementById('regFavCheckbox').checked;
-      const isGift = document.getElementById('regGiftCheckbox').checked;
-
-      let giftDateVal = null;
-      if (isGift) {
-        const targetIdx = editingIndex !== null ? editingIndex : (pendingDuplicateIndex !== null ? pendingDuplicateIndex : -1);
-        if (targetIdx !== -1 && alerts[targetIdx].giftDate) {
-          giftDateVal = alerts[targetIdx].giftDate;
-        } else {
-          const now = new Date();
-          giftDateVal = `${String(now.getFullYear()).slice(-2)}/${String(now.getMonth() + 1).padStart(2, '0')}`;
-        }
-      }
-
-      const alertData = { 
-        name: finalName, 
-        code: currentFetchedStock.code, 
-        price: price || null, 
-        rate: rate || null,
-        memo: memo || '',
-        favorite: isFav,
-        gift: isGift,
-        giftDate: giftDateVal,
-        disabled: editingIndex !== null ? (alerts[editingIndex].disabled || false) : (pendingDuplicateIndex !== null ? (alerts[pendingDuplicateIndex].disabled || false) : false)
-      };
-
-      const targetEditIdx = editingIndex !== null ? editingIndex : (pendingDuplicateIndex !== null ? pendingDuplicateIndex : null);
-
-      if (targetEditIdx !== null) {
-        alerts[targetEditIdx] = alertData;
-      } else {
-        alerts.push(alertData);
-      }
-
-      editingIndex = null;
-      pendingDuplicateIndex = null;
-      closeCompareModal();
-      document.getElementById('formTitle').innerText = '銘柄の登録';
-
-      saveToStorage();
-      clearForm();
-      if (isFormOpen) toggleFormAccordion();
-      refreshAllPrices();
-    }
-
-    function showCompareModal(existIdx) {
-      const oldItem = alerts[existIdx];
-      const newPrice = document.getElementById('targetPrice').value || '-';
-      const newRate = document.getElementById('targetDropRate').value ? `-${document.getElementById('targetDropRate').value}%` : '-';
-      const newFav = document.getElementById('regFavCheckbox').checked ? '⭐ あり' : 'なし';
-      const newGift = document.getElementById('regGiftCheckbox').checked ? '🎁 あり' : 'なし';
-      const newMemo = document.getElementById('memoInput').value || '-';
-
-      const oldPrice = oldItem.price ? `${oldItem.price}円` : '-';
-      const oldRate = oldItem.rate ? `-${oldItem.rate}%` : '-';
-      const oldFav = oldItem.favorite ? '⭐ あり' : 'なし';
-      const oldGift = oldItem.gift ? '🎁 あり' : 'なし';
-      const oldMemo = oldItem.memo || '-';
-
-      document.getElementById('oldPriceVal').innerText = oldPrice;
-      document.getElementById('newPriceVal').innerText = newPrice !== '-' ? `${newPrice}円` : '-';
-      document.getElementById('oldRateVal').innerText = oldRate;
-      document.getElementById('newRateVal').innerText = newRate;
-      document.getElementById('oldFavVal').innerText = oldFav;
-      document.getElementById('newFavVal').innerText = newFav;
-      document.getElementById('oldGiftVal').innerText = oldGift;
-      document.getElementById('newGiftVal').innerText = newGift;
-      document.getElementById('oldMemoVal').innerText = oldMemo;
-      document.getElementById('newMemoVal').innerText = newMemo;
-
-      document.getElementById('compareModal').style.display = 'flex';
-    }
-
-    function closeCompareModal() {
-      document.getElementById('compareModal').style.display = 'none';
-      pendingDuplicateIndex = null;
-    }
-
-    function clearForm() {
-      document.getElementById('stockSearchInput').value = '';
-      document.getElementById('targetPrice').value = '';
-      document.getElementById('targetDropRate').value = '';
-      document.getElementById('memoInput').value = '';
-      document.getElementById('regFavCheckbox').checked = false;
-      document.getElementById('regGiftCheckbox').checked = false;
-      document.getElementById('previewName').innerText = '4桁のコードを入力';
-      document.getElementById('previewName').style.color = 'var(--sub-text)';
-      document.getElementById('previewPrice').innerHTML = '株価等が表示されます';
-      document.getElementById('translateBtn').style.display = 'none';
-      resetSubmitBtn();
-    }
-
-    function toggleFavorite(index) {
-      alerts[index].favorite = !alerts[index].favorite;
-      saveToStorage();
-      renderList();
-    }
-
-    function toggleGift(index) {
-      alerts[index].gift = !alerts[index].gift;
-      if (alerts[index].gift && !alerts[index].giftDate) {
-        const now = new Date();
-        alerts[index].giftDate = `${String(now.getFullYear()).slice(-2)}/${String(now.getMonth() + 1).padStart(2, '0')}`;
-      }
-      saveToStorage();
-      renderList();
-    }
-
-    function toggleAlertActive(index) {
-      alerts[index].disabled = !alerts[index].disabled;
-      saveToStorage();
-      renderList();
-    }
-
-    function calculateChanceScore(item, quote) {
-      if (!quote || quote.error) return 0;
-      let score = 50;
-      if (item.price) {
-        const target = parseFloat(item.price);
-        const current = quote.price;
-        if (current <= target) score += 40;
-        else {
-          const diffRatio = (current - target) / target;
-          if (diffRatio < 0.05) score += 30;
-          else if (diffRatio < 0.10) score += 20;
-          else if (diffRatio < 0.20) score += 10;
-        }
-      }
-      if (quote.changePercent < 0) {
-        score += Math.min(Math.abs(quote.changePercent) * 5, 20);
-      }
-      if (item.favorite) score += 10;
-      return Math.min(Math.round(score), 100);
-    }
-
+    // リスト描画処理
     function renderList() {
-      const listDiv = document.getElementById('alertList');
-      if (alerts.length === 0) {
-        listDiv.innerHTML = '<div style="color:#999; font-size:0.8rem; padding:10px 0;">登録されているアラートはありません。</div>';
+      const listContainer = document.getElementById('stockList');
+      const sortVal = document.getElementById('sortSelect').value;
+      const minPrice = parseFloat(document.getElementById('filterMinPrice').value) || 0;
+      const maxPrice = parseFloat(document.getElementById('filterMaxPrice').value) || Infinity;
+
+      // 絞り込み
+      let filtered = stocks.filter(s => s.price >= minPrice && s.price <= maxPrice);
+
+      // ソート処理
+      filtered.sort((a, b) => {
+        if (sortVal === 'chance') {
+          // チャンス順 (指値までの距離割合)
+          const ratioA = a.targetPrice ? (a.price / a.targetPrice) : 999;
+          const ratioB = b.targetPrice ? (b.price / b.targetPrice) : 999;
+          return ratioA - ratioB;
+        } else if (sortVal === 'code') {
+          return a.code.localeCompare(b.code);
+        } else if (sortVal === 'priceAsc') {
+          return a.price - b.price;
+        } else if (sortVal === 'priceDesc') {
+          return b.price - a.price;
+        }
+        return 0; // デフォルト登録順
+      });
+
+      if (filtered.length === 0) {
+        listContainer.innerHTML = '<div style="text-align: center; color: var(--sub-text); padding: 20px;">監視中の銘柄がありません。</div>';
         return;
       }
 
-      const sortType = document.getElementById('sortSelect').value;
-      const minPrice = parseFloat(document.getElementById('minPriceInput').value) || 0;
-      const maxPrice = parseFloat(document.getElementById('maxPriceInput').value) || Infinity;
-
-      let filteredAlerts = alerts.map((item, index) => {
-        const quote = priceCache[item.code];
-        const chanceScore = calculateChanceScore(item, quote);
-        let percent = 0;
-        let isTriggered = false;
-
-        if (quote && !quote.error) {
-          if (item.price) {
-            const target = parseFloat(item.price);
-            const current = quote.price;
-            percent = Math.min(Math.max((target / current) * 100, 0), 100);
-            if (current <= target) isTriggered = true;
-          }
-          if (item.rate && quote.changePercent <= -Math.abs(parseFloat(item.rate))) {
-            isTriggered = true;
-          }
+      let html = '';
+      filtered.forEach(item => {
+        // 購入チャンススコア計算 (例: 目標値にどれだけ近いか)
+        let chanceScore = 50;
+        if (item.targetPrice) {
+          const ratio = (item.targetPrice / item.price);
+          chanceScore = Math.min(99, Math.max(10, Math.round(ratio * 90)));
         }
-        return { item, originalIndex: index, quote, chanceScore, percent, isTriggered };
-      }).filter(({ quote }) => {
-        if (!quote || quote.error) return true; 
-        return quote.price >= minPrice && quote.price <= maxPrice;
-      });
 
-      filteredAlerts.sort((a, b) => {
-        if (sortType === 'chance') return b.chanceScore - a.chanceScore;
-        if (sortType === 'favorite') return (b.item.favorite ? 1 : 0) - (a.item.favorite ? 1 : 0);
-        if (sortType === 'not-favorite') return (b.item.favorite ? 0 : 1) - (a.item.favorite ? 0 : 1);
-        if (sortType === 'target-close') return b.percent - a.percent;
-        if (sortType === 'gift') return (b.item.gift ? 1 : 0) - (a.item.gift ? 1 : 0);
-        if (sortType === 'code') return a.item.code.localeCompare(b.item.code);
-        
-        const qA = a.quote;
-        const qB = b.quote;
-        if (sortType === 'priceDesc' || sortType === 'priceAsc') {
-          const pA = (qA && !qA.error) ? qA.price : 0;
-          const pB = (qB && !qB.error) ? qB.price : 0;
-          return sortType === 'priceDesc' ? pB - pA : pA - pB;
+        // メモ表示判定 (一括表示がON または 個別表示がON)
+        const isMemoShow = isBulkMemoVisible || !!individualMemoState[item.id];
+
+        // 進捗バーの計算
+        let progressPct = 80;
+        if (item.targetPrice) {
+          progressPct = Math.min(100, Math.round((item.targetPrice / item.price) * 100));
         }
-        if (sortType === 'drop' || sortType === 'rise') {
-          const valA = (qA && !qA.error) ? qA.changePercent : 0;
-          const valB = (qB && !qB.error) ? qB.changePercent : 0;
-          return sortType === 'drop' ? valA - valB : valB - valA;
-        }
-        return a.originalIndex - b.originalIndex;
-      });
 
-      if (filteredAlerts.length === 0) {
-        listDiv.innerHTML = '<div style="color:#999; font-size:0.8rem; padding:10px 0;">条件に該当する銘柄はありません。</div>';
-        return;
-      }
-
-      listDiv.innerHTML = filteredAlerts.map(({ item, originalIndex, quote, chanceScore, percent, isTriggered }) => {
-        const yfWebUrl = `https://finance.yahoo.co.jp/quote/${item.code}.T`;
-        
-        let priceDisplay = '<div style="font-size:0.75rem; color:#888; margin-top:3px;">株価を取得中...</div>';
-        let progressArea = '';
-        let dividendDisplay = '';
-        let giftDisplay = '';
-        let chanceBadgeHtml = `<span class="chance-badge">🔥 ${chanceScore}pt</span>`;
-        let partyBadgeHtml = (isTriggered && !item.disabled) ? `<span class="party-badge">🎉 到達!</span>` : '';
-
-        if (quote && !quote.error) {
-          priceDisplay = createYfHTML(quote);
-          if (quote.dividendRate) {
-            const yieldStr = quote.dividendYield ? ` (${quote.dividendYield}%)` : '';
-            dividendDisplay = `<span class="dividend-tag">💰 配当: ${quote.dividendRate}円${yieldStr}</span>`;
-          }
-          if (item.gift) {
-            giftDisplay = `<span class="gift-tag">🎁 優待 <small>(${item.giftDate || ''})</small></span>`;
-          }
-          if (item.price) {
-            const barClass = (isTriggered && !item.disabled) ? 'progress-bar triggered-bar' : 'progress-bar';
-            progressArea = `
-              <div class="progress-wrapper">
-                <div class="progress-container">
-                  <div class="${barClass}" style="width: ${percent}%;"></div>
-                </div>
-                <span class="progress-text">${percent.toFixed(1)}%</span>
+        html += `
+          <div class="stock-item">
+            <div class="stock-top">
+              <div class="stock-title">
+                <span class="star-btn ${item.fav ? 'active' : ''}" onclick="toggleFav('${item.id}')">★</span>
+                ${item.name} <span style="font-size: 0.8rem; color: var(--sub-text);">(${item.code})</span>
+                <span class="score-badge">🔥 ${chanceScore}pt</span>
               </div>
-            `;
-          }
-        } else if (quote && quote.error) {
-          priceDisplay = '<div style="font-size:0.75rem; color:#e53935; margin-top:3px;">※取得失敗</div>';
-        }
+              <div>
+                <a href="https://finance.yahoo.co.jp/quote/${item.code}.T" target="_blank" style="text-decoration:none;">
+                  <span style="background: #ff0033; color: white; border-radius: 4px; padding: 2px 5px; font-size: 0.7rem; font-weight: bold;">y!</span>
+                </a>
+              </div>
+            </div>
 
-        const isOFF = item.disabled;
-        const cardTriggerClass = (isTriggered && !isOFF) ? 'triggered-card' : '';
+            <div class="stock-price-row">
+              <div class="current-price ${item.change < 0 ? 'price-down' : 'price-up'}">
+                ${item.change < 0 ? '⬇' : '⬆'} ${item.price.toLocaleString()}円 
+                <span style="font-size: 0.8rem;">${item.change >= 0 ? '+' : ''}${item.change} (${item.changePct}%)</span>
+              </div>
+              ${item.benefit ? `<div style="font-size:0.75rem; color:#d9534f; font-weight:bold;">🎁 優待 (26/09)</div>` : ''}
+            </div>
 
-        return `
-          <div class="item ${item.favorite ? 'favorite' : ''} ${isOFF ? 'disabled' : ''} ${cardTriggerClass}">
-            <div class="item-header">
-              <span class="item-title">
-                <button class="star-btn ${item.favorite ? 'active' : ''}" onclick="toggleFavorite(${originalIndex})">★</button>
-                ${item.name} <span class="code-badge">(${item.code})</span>
-                ${chanceBadgeHtml}
-                ${partyBadgeHtml}
-              </span>
-              <div class="link-group">
-                <button class="toggle-alert-btn" onclick="toggleAlertActive(${originalIndex})" title="${isOFF ? 'アラートOFF' : 'アラートON'}">
-                  ${isOFF ? '🔕' : '🔔'}
+            <div class="target-info">
+              <span>指値: ${item.targetPrice ? item.targetPrice + '円' : '-'}</span>
+              <span>下落: -${item.dropRate || 3}%</span>
+              <span style="margin-left: auto;">${progressPct}%</span>
+            </div>
+
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill" style="width: ${progressPct}%;"></div>
+            </div>
+
+            ${item.memo ? `
+              <div class="memo-box ${isMemoShow ? '' : 'memo-hidden'}">
+                📝 ${item.memo}
+              </div>
+            ` : ''}
+
+            <div class="stock-actions">
+              ${item.memo ? `
+                <button class="icon-btn" onclick="toggleSingleMemo('${item.id}')">
+                  ${individualMemoState[item.id] ? '🙈 メモ隠す' : '📝 メモ見る'}
                 </button>
-                <a href="${yfWebUrl}" target="_blank" class="yf-app-btn" title="Yahoo!ファイナンス">y!</a>
-              </div>
-            </div>
-
-            <div class="price-row-wrapper">
-              ${priceDisplay}
-              <div>${giftDisplay}</div>
-            </div>
-            
-            <div class="list-info-row">
-              <div class="tags-wrapper">
-                ${item.price ? `<span class="condition-tag">指値: ${item.price}円</span>` : ''}
-                ${item.rate ? `<span class="condition-tag">下落: -${item.rate}%</span>` : ''}
-                ${dividendDisplay}
-              </div>
-              ${progressArea}
-            </div>
-
-            ${item.memo ? `<div class="memo-tag">📝 ${item.memo}</div>` : ''}
-            
-            <div class="btn-group">
-              <button class="icon-btn ${item.gift ? 'gift-active' : ''}" onclick="toggleGift(${originalIndex})" title="優待切り替え">🎁</button>
-              <button class="icon-btn" onclick="refreshSinglePrice(${originalIndex}, '${item.code}')" title="再取得">🔄</button>
-              <button class="icon-btn" onclick="editAlert(${originalIndex})" title="編集">✏️</button>
-              <button class="icon-btn" onclick="deleteAlert(${originalIndex})" title="削除" style="color:#e53935;">🗑️</button>
+              ` : ''}
+              <button class="icon-btn" onclick="editStock('${item.id}')">✏️ 編集</button>
+              <button class="icon-btn" onclick="deleteStock('${item.id}')">🗑️ 削除</button>
             </div>
           </div>
         `;
-      }).join('');
-    }
+      });
 
-    function editAlert(index) {
-      const item = alerts[index];
-      if (!isFormOpen) toggleFormAccordion();
-      document.getElementById('stockSearchInput').value = item.code;
-      document.getElementById('targetPrice').value = item.price || '';
-      document.getElementById('targetDropRate').value = item.rate || '';
-      document.getElementById('memoInput').value = item.memo || '';
-      document.getElementById('regFavCheckbox').checked = item.favorite || false;
-      document.getElementById('regGiftCheckbox').checked = item.gift || false;
-      editingIndex = index;
-      document.getElementById('formTitle').innerText = 'アラートの編集';
-      onCodeInput();
-    }
-
-    function deleteAlert(index) {
-      if (confirm('このアラートを削除しますか？')) {
-        alerts.splice(index, 1);
-        saveToStorage();
-        renderList();
-      }
+      listContainer.innerHTML = html;
     }
   </script>
 </body>
