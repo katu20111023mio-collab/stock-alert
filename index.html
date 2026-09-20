@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>株価アラート ver 2.8.0</title>
+  <title>株価アラート ver 2.8.1</title>
   <style>
     :root {
       --bg-color: #f4f6f8;
@@ -128,7 +128,7 @@
   <!-- ヘッダー -->
   <header>
     <div class="app-title">
-      📈 株価アラート <span class="version-tag">ver 2.8.0</span>
+      📈 株価アラート <span class="version-tag">ver 2.8.1</span>
     </div>
     <button class="theme-toggle" id="themeToggleBtn" onclick="toggleDarkMode()">🌙 ダークモード</button>
   </header>
@@ -155,7 +155,7 @@
     </div>
 
     <div class="form-body" id="formBody">
-      <!-- 銘柄コード（数字キーボード自動起動設定） & プレビュー -->
+      <!-- 銘柄コード & プレビュー -->
       <div class="form-group">
         <label class="form-label">銘柄コード（4桁）＆ プレビュー</label>
         <div class="input-row">
@@ -233,33 +233,31 @@
   </div>
 
   <script>
-    // 拡充された日本語公式銘柄辞書
+    // 銘柄辞書（marketプロパティで市場コード指定。省略時はT:東証）
     const stockDictionary = {
-      "9101": { name: "日本郵船", price: 7374, change: 140, changePct: 1.94, benefitPct: "26/09" },
-      "5411": { name: "JFEホールディングス", price: 1857, change: 30.5, changePct: 1.67, benefitPct: "26/09" },
-      "9432": { name: "日本電信電話 (NTT)", price: 177.1, change: -1.0, changePct: -0.56, benefitPct: "26/09" },
-      "4755": { name: "楽天グループ", price: 714.7, change: -18.9, changePct: -2.58, benefitPct: "26/09", defaultMemo: "優待：モバイル" },
-      "3382": { name: "セブン＆アイ・ホールディングス", price: 2020, change: -34.5, changePct: -1.68, benefitPct: "" },
-      "8267": { name: "イオン", price: 1313.5, change: -34.5, changePct: -2.56, benefitPct: "26/09" },
-      "8153": { name: "モスフードサービス", price: 3960, change: -50, changePct: -1.25, benefitPct: "26/09" },
-      "2198": { name: "IKKホールディングス", price: 774, change: -5, changePct: -0.64, benefitPct: "26/09" },
-      "9166": { name: "GENDA", price: 690, change: -5, changePct: -0.72, benefitPct: "26/09", defaultMemo: "優待：Ban Ban、GIGAなどで使えるポイント" },
-      "2792": { name: "ハニーズホールディングス", price: 1445, change: -3, changePct: -0.21, benefitPct: "26/09" },
-      "7203": { name: "トヨタ自動車", price: 2650, change: 25, changePct: 0.95, benefitPct: "" },
-      "6758": { name: "ソニーグループ", price: 12800, change: -150, changePct: -1.16, benefitPct: "" },
-      "2928": { name: "RIZAPグループ", price: 170, change: 0, changePct: 0.0, benefitPct: "26/09", defaultMemo: "チョコザップ無料等" }
+      "9101": { name: "日本郵船", price: 7374, change: 140, changePct: 1.94, benefitPct: "26/09", market: "T" },
+      "5411": { name: "JFEホールディングス", price: 1857, change: 30.5, changePct: 1.67, benefitPct: "26/09", market: "T" },
+      "9432": { name: "日本電信電話 (NTT)", price: 177.1, change: -1.0, changePct: -0.56, benefitPct: "26/09", market: "T" },
+      "4755": { name: "楽天グループ", price: 714.7, change: -18.9, changePct: -2.58, benefitPct: "26/09", defaultMemo: "優待：モバイル", market: "T" },
+      "3382": { name: "セブン＆アイ・ホールディングス", price: 2020, change: -34.5, changePct: -1.68, benefitPct: "", market: "T" },
+      "8267": { name: "イオン", price: 1313.5, change: -34.5, changePct: -2.56, benefitPct: "26/09", market: "T" },
+      "8153": { name: "モスフードサービス", price: 3960, change: -50, changePct: -1.25, benefitPct: "26/09", market: "T" },
+      "2198": { name: "IKKホールディングス", price: 774, change: -5, changePct: -0.64, benefitPct: "26/09", market: "T" },
+      "9166": { name: "GENDA", price: 690, change: -5, changePct: -0.72, benefitPct: "26/09", defaultMemo: "優待：Ban Ban、GIGAなどで使えるポイント", market: "T" },
+      "2792": { name: "ハニーズホールディングス", price: 1445, change: -3, changePct: -0.21, benefitPct: "26/09", market: "T" },
+      "7203": { name: "トヨタ自動車", price: 2650, change: 25, changePct: 0.95, benefitPct: "", market: "T" },
+      "6758": { name: "ソニーグループ", price: 12800, change: -150, changePct: -1.16, benefitPct: "", market: "T" },
+      "2928": { name: "RIZAPグループ", price: 170, change: 0, changePct: 0.0, benefitPct: "26/09", defaultMemo: "チョコザップ無料等", market: "S" } // 札証のため S
     };
 
-    // 初期サンプルデータ
     const initialStocks = [
-      { id: '1', code: '4755', name: '楽天グループ', targetPrice: 700, dropRate: 3, fav: true, benefit: true, memo: '優待：モバイル', price: 714.7, change: -18.9, changePct: -2.58 },
-      { id: '2', code: '9432', name: '日本電信電話 (NTT)', targetPrice: 160, dropRate: 3, fav: false, benefit: true, memo: '配当金目的。長期保有', price: 177.1, change: -1.0, changePct: -0.56 },
-      { id: '3', code: '9166', name: 'GENDA', targetPrice: 600, dropRate: 3, fav: false, benefit: true, memo: '優待：Ban Ban、GIGAなどで使えるポイント', price: 690, change: -5.0, changePct: -0.72 },
-      { id: '4', code: '8153', name: 'モスフードサービス', targetPrice: 3000, dropRate: 3, fav: false, benefit: true, memo: '優待券目的。店舗拡大に期待', price: 3960, change: -50.0, changePct: -1.25 },
-      { id: '5', code: '2928', name: 'RIZAPグループ', targetPrice: 150, dropRate: 3, fav: false, benefit: true, memo: 'チョコザップ無料特典', price: 170, change: 0, changePct: 0.0 }
+      { id: '1', code: '4755', name: '楽天グループ', targetPrice: 700, dropRate: 3, fav: true, benefit: true, memo: '優待：モバイル', price: 714.7, change: -18.9, changePct: -2.58, market: 'T' },
+      { id: '2', code: '9432', name: '日本電信電話 (NTT)', targetPrice: 160, dropRate: 3, fav: false, benefit: true, memo: '配当金目的。長期保有', price: 177.1, change: -1.0, changePct: -0.56, market: 'T' },
+      { id: '3', code: '9166', name: 'GENDA', targetPrice: 600, dropRate: 3, fav: false, benefit: true, memo: '優待：Ban Ban、GIGAなどで使えるポイント', price: 690, change: -5.0, changePct: -0.72, market: 'T' },
+      { id: '4', code: '8153', name: 'モスフードサービス', targetPrice: 3000, dropRate: 3, fav: false, benefit: true, memo: '優待券目的。店舗拡大に期待', price: 3960, change: -50.0, changePct: -1.25, market: 'T' },
+      { id: '5', code: '2928', name: 'RIZAPグループ', targetPrice: 150, dropRate: 3, fav: false, benefit: true, memo: 'チョコザップ無料特典', price: 170, change: 0, changePct: 0.0, market: 'S' }
     ];
 
-    // 日本の祝日リスト（2026年）
     const japaneseHolidays2026 = [
       "2026-01-01", "2026-01-12", "2026-02-11", "2026-02-23", "2026-03-20",
       "2026-04-29", "2026-05-03", "2026-05-04", "2026-05-05", "2026-05-06",
@@ -268,7 +266,7 @@
     ];
 
     let stocks = [];
-    let inlineEditingId = null; // その場で編集中のカードID
+    let inlineEditingId = null;
     let isBulkMemoVisible = false;
     let individualMemoState = {};
     let isFormVisible = true;
@@ -387,10 +385,11 @@
       let price = stockDictionary[code] ? stockDictionary[code].price : 1000;
       let change = stockDictionary[code] ? stockDictionary[code].change : 0;
       let changePct = stockDictionary[code] ? stockDictionary[code].changePct : 0;
+      let market = stockDictionary[code] ? (stockDictionary[code].market || 'T') : 'T';
 
       const newStock = {
         id: Date.now().toString(),
-        code, name, targetPrice, dropRate, fav, benefit, memo, price, change, changePct
+        code, name, targetPrice, dropRate, fav, benefit, memo, price, change, changePct, market
       };
       stocks.unshift(newStock);
 
@@ -409,7 +408,6 @@
       onStockCodeChange();
     }
 
-    // --- その場編集（インライン編集）の制御 ---
     function startInlineEdit(id) {
       inlineEditingId = id;
       renderList();
@@ -518,7 +516,6 @@
         const isEditing = (inlineEditingId === item.id);
 
         if (isEditing) {
-          // --- その場で編集中のカードUI ---
           html += `
             <div class="stock-item editing-mode">
               <div class="stock-top">
@@ -553,7 +550,6 @@
             </div>
           `;
         } else {
-          // --- 通常表示のカードUI ---
           let chanceScore = 50;
           if (item.targetPrice) {
             const ratio = (item.targetPrice / item.price);
@@ -567,6 +563,9 @@
             progressPct = Math.min(100, Math.round((item.targetPrice / item.price) * 100));
           }
 
+          // 市場判定 (S:札証, T:東証など)
+          const market = item.market || (stockDictionary[item.code] ? stockDictionary[item.code].market : 'T') || 'T';
+
           html += `
             <div class="stock-item">
               <div class="stock-top">
@@ -576,7 +575,7 @@
                   <span class="score-badge">🔥 ${chanceScore}pt</span>
                 </div>
                 <div>
-                  <a href="https://finance.yahoo.co.jp/quote/${item.code}.T" target="_blank" style="text-decoration:none;">
+                  <a href="https://finance.yahoo.co.jp/quote/${item.code}.${market}" target="_blank" style="text-decoration:none;">
                     <span style="background: #ff0033; color: white; border-radius: 4px; padding: 2px 5px; font-size: 0.7rem; font-weight: bold;">y!</span>
                   </a>
                 </div>
@@ -590,7 +589,6 @@
                 ${item.benefit ? `<div style="font-size:0.75rem; color:#d9534f; font-weight:bold;">🎁 優待 (26/09)</div>` : ''}
               </div>
 
-              <!-- 指値・下落・データバーの1行まとめ -->
               <div class="target-info-row">
                 <span>指値: ${item.targetPrice ? item.targetPrice.toLocaleString() + '円' : '-'}</span>
                 <span>下落: -${item.dropRate || 3}%</span>
