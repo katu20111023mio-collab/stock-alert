@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>株価アラート ver 2.7.1</title>
+  <title>株価アラート ver 2.8.0</title>
   <style>
     :root {
       --bg-color: #f4f6f8;
@@ -49,10 +49,11 @@
 
     /* カード枠 */
     .card { background-color: var(--card-bg); border-radius: 12px; padding: 14px; margin-bottom: 16px; border: 1px solid var(--border-color); box-shadow: 0 2px 6px rgba(0,0,0,0.03); }
-    .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 6px; border-bottom: 2px solid var(--primary-color); }
+    .card-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 6px; border-bottom: 2px solid var(--primary-color); }
     .card-title { font-size: 1rem; font-weight: bold; }
 
     /* フォーム要素 */
+    .form-body { margin-top: 12px; }
     .form-group { margin-bottom: 10px; }
     .form-label { font-size: 0.8rem; color: var(--sub-text); margin-bottom: 4px; display: block; }
     .input-row { display: flex; gap: 8px; align-items: center; }
@@ -65,7 +66,7 @@
     .checkbox-group { display: flex; gap: 16px; margin: 10px 0; font-size: 0.85rem; align-items: center; }
     .checkbox-group label { display: flex; align-items: center; gap: 4px; cursor: pointer; }
 
-    /* コンパクト化したボタン群 */
+    /* ボタン群 */
     .btn-action-group { display: flex; gap: 8px; margin-top: 10px; }
     .btn-main { flex: 2; padding: 8px 12px; background-color: var(--primary-color); color: white; border: none; border-radius: 6px; font-weight: bold; font-size: 0.9rem; cursor: pointer; white-space: nowrap; }
     .btn-secondary { flex: 1; padding: 8px 12px; background-color: #8e8e93; color: white; border: none; border-radius: 6px; font-weight: bold; font-size: 0.85rem; cursor: pointer; white-space: nowrap; }
@@ -76,6 +77,7 @@
 
     /* 監視リストカード */
     .stock-item { background-color: var(--card-bg); border-radius: 10px; padding: 12px; margin-bottom: 10px; border: 1px solid var(--border-color); position: relative; }
+    .stock-item.editing-mode { border: 2px solid var(--primary-color); background-color: rgba(0, 122, 255, 0.02); }
     .stock-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
     .stock-title { font-weight: bold; font-size: 0.95rem; display: flex; align-items: center; gap: 6px; }
     .star-btn { cursor: pointer; font-size: 1.1rem; color: #ccc; }
@@ -96,7 +98,7 @@
     .data-bar-fill { height: 100%; background: linear-gradient(90deg, #007aff, #34c759); transition: width 0.3s ease; border-radius: 8px; }
     .data-bar-text { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: bold; color: #ffffff; text-shadow: 0px 0px 3px rgba(0, 0, 0, 0.8); pointer-events: none; }
 
-    /* メモ領域 (確実に左端寄せを適用) */
+    /* メモ領域 (確実に左端寄せ) */
     .memo-box { 
       display: block !important;
       text-align: left !important; 
@@ -126,7 +128,7 @@
   <!-- ヘッダー -->
   <header>
     <div class="app-title">
-      📈 株価アラート <span class="version-tag">ver 2.7.1</span>
+      📈 株価アラート <span class="version-tag">ver 2.8.0</span>
     </div>
     <button class="theme-toggle" id="themeToggleBtn" onclick="toggleDarkMode()">🌙 ダークモード</button>
   </header>
@@ -145,53 +147,55 @@
     </a>
   </div>
 
-  <!-- 登録 / 編集 フォームカード -->
+  <!-- 登録フォームカード（表示・非表示 切替可能） -->
   <div class="card" id="formCard">
     <div class="card-header">
-      <div class="card-title" id="formTitle">銘柄の登録</div>
-      <button class="btn-header-action" onclick="scrollToTop()">📝 登録</button>
+      <div class="card-title">銘柄の新規登録</div>
+      <button class="btn-header-action" id="toggleFormBtn" onclick="toggleFormCard()">▲ フォームをたたむ</button>
     </div>
 
-    <!-- 銘柄コード（数字キーボード自動起動設定） & プレビュー -->
-    <div class="form-group">
-      <label class="form-label">銘柄コード（4桁）＆ プレビュー</label>
-      <div class="input-row">
-        <input type="text" id="stockCodeInput" placeholder="9101" maxlength="4" inputmode="numeric" pattern="[0-9]*" style="width: 85px;" oninput="onStockCodeChange()">
-        <div class="preview-box" id="previewBox">
-          <div class="stock-name-preview" id="previewName">銘柄コードを入力してください</div>
-          <div class="stock-price-preview" id="previewPrice">- 円</div>
+    <div class="form-body" id="formBody">
+      <!-- 銘柄コード（数字キーボード自動起動設定） & プレビュー -->
+      <div class="form-group">
+        <label class="form-label">銘柄コード（4桁）＆ プレビュー</label>
+        <div class="input-row">
+          <input type="text" id="stockCodeInput" placeholder="9101" maxlength="4" inputmode="numeric" pattern="[0-9]*" style="width: 85px;" oninput="onStockCodeChange()">
+          <div class="preview-box" id="previewBox">
+            <div class="stock-name-preview" id="previewName">銘柄コードを入力してください</div>
+            <div class="stock-price-preview" id="previewPrice">- 円</div>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- 指値 & 下落率 -->
-    <div class="input-row form-group">
-      <div style="flex: 1;">
-        <label class="form-label">① 指値 (円以下)</label>
-        <input type="number" id="targetPriceInput" placeholder="例: 1000" inputmode="numeric">
+      <!-- 指値 & 下落率 -->
+      <div class="input-row form-group">
+        <div style="flex: 1;">
+          <label class="form-label">① 指値 (円以下)</label>
+          <input type="number" id="targetPriceInput" placeholder="例: 1000" inputmode="numeric">
+        </div>
+        <div style="flex: 1;">
+          <label class="form-label">② 下落率 (-%以上)</label>
+          <input type="number" id="dropRateInput" placeholder="例: 3" step="0.1" inputmode="decimal">
+        </div>
       </div>
-      <div style="flex: 1;">
-        <label class="form-label">② 下落率 (-%以上)</label>
-        <input type="number" id="dropRateInput" placeholder="例: 3" step="0.1" inputmode="decimal">
+
+      <!-- チェックボックス -->
+      <div class="checkbox-group">
+        <label><input type="checkbox" id="favCheck"> ⭐ お気に入り</label>
+        <label><input type="checkbox" id="benefitCheck"> 🎁 優待あり</label>
       </div>
-    </div>
 
-    <!-- チェックボックス -->
-    <div class="checkbox-group">
-      <label><input type="checkbox" id="favCheck"> ⭐ お気に入り</label>
-      <label><input type="checkbox" id="benefitCheck"> 🎁 優待あり</label>
-    </div>
+      <!-- メモ欄 -->
+      <div class="form-group">
+        <label class="form-label">③ メモ（買い増し理由・優待内容など）</label>
+        <input type="text" id="memoInput" placeholder="例: PER10倍以下。決算発表後に確認">
+      </div>
 
-    <!-- メモ欄 -->
-    <div class="form-group">
-      <label class="form-label">③ メモ（買い増し理由・優待内容など）</label>
-      <input type="text" id="memoInput" placeholder="例: PER10倍以下。決算発表後に確認">
-    </div>
-
-    <!-- コンパクトな1行ボタン群 -->
-    <div class="btn-action-group">
-      <button class="btn-main" id="submitBtn" onclick="saveStock()">➕ 追加</button>
-      <button class="btn-secondary" id="cancelClearBtn" onclick="handleCancelClear()">🧹 クリア</button>
+      <!-- ボタン群 -->
+      <div class="btn-action-group">
+        <button class="btn-main" onclick="saveNewStock()">➕ 新規追加</button>
+        <button class="btn-secondary" onclick="resetNewForm()">🧹 クリア</button>
+      </div>
     </div>
   </div>
 
@@ -229,7 +233,7 @@
   </div>
 
   <script>
-    // 日本語公式銘柄辞書
+    // 拡充された日本語公式銘柄辞書
     const stockDictionary = {
       "9101": { name: "日本郵船", price: 7374, change: 140, changePct: 1.94, benefitPct: "26/09" },
       "5411": { name: "JFEホールディングス", price: 1857, change: 30.5, changePct: 1.67, benefitPct: "26/09" },
@@ -242,7 +246,8 @@
       "9166": { name: "GENDA", price: 690, change: -5, changePct: -0.72, benefitPct: "26/09", defaultMemo: "優待：Ban Ban、GIGAなどで使えるポイント" },
       "2792": { name: "ハニーズホールディングス", price: 1445, change: -3, changePct: -0.21, benefitPct: "26/09" },
       "7203": { name: "トヨタ自動車", price: 2650, change: 25, changePct: 0.95, benefitPct: "" },
-      "6758": { name: "ソニーグループ", price: 12800, change: -150, changePct: -1.16, benefitPct: "" }
+      "6758": { name: "ソニーグループ", price: 12800, change: -150, changePct: -1.16, benefitPct: "" },
+      "2928": { name: "RIZAPグループ", price: 170, change: 0, changePct: 0.0, benefitPct: "26/09", defaultMemo: "チョコザップ無料等" }
     };
 
     // 初期サンプルデータ
@@ -250,7 +255,8 @@
       { id: '1', code: '4755', name: '楽天グループ', targetPrice: 700, dropRate: 3, fav: true, benefit: true, memo: '優待：モバイル', price: 714.7, change: -18.9, changePct: -2.58 },
       { id: '2', code: '9432', name: '日本電信電話 (NTT)', targetPrice: 160, dropRate: 3, fav: false, benefit: true, memo: '配当金目的。長期保有', price: 177.1, change: -1.0, changePct: -0.56 },
       { id: '3', code: '9166', name: 'GENDA', targetPrice: 600, dropRate: 3, fav: false, benefit: true, memo: '優待：Ban Ban、GIGAなどで使えるポイント', price: 690, change: -5.0, changePct: -0.72 },
-      { id: '4', code: '8153', name: 'モスフードサービス', targetPrice: 3000, dropRate: 3, fav: false, benefit: true, memo: '優待券目的。店舗拡大に期待', price: 3960, change: -50.0, changePct: -1.25 }
+      { id: '4', code: '8153', name: 'モスフードサービス', targetPrice: 3000, dropRate: 3, fav: false, benefit: true, memo: '優待券目的。店舗拡大に期待', price: 3960, change: -50.0, changePct: -1.25 },
+      { id: '5', code: '2928', name: 'RIZAPグループ', targetPrice: 150, dropRate: 3, fav: false, benefit: true, memo: 'チョコザップ無料特典', price: 170, change: 0, changePct: 0.0 }
     ];
 
     // 日本の祝日リスト（2026年）
@@ -262,12 +268,13 @@
     ];
 
     let stocks = [];
-    let editingId = null;
+    let inlineEditingId = null; // その場で編集中のカードID
     let isBulkMemoVisible = false;
     let individualMemoState = {};
+    let isFormVisible = true;
 
     window.onload = function() {
-      const saved = localStorage.getItem('stockAlerts_v2.7');
+      const saved = localStorage.getItem('stockAlerts_v2.8');
       if (saved) {
         try { stocks = JSON.parse(saved); } catch(e) { stocks = initialStocks; }
       } else {
@@ -277,6 +284,19 @@
       renderList();
       checkMarketStatus();
     };
+
+    function toggleFormCard() {
+      isFormVisible = !isFormVisible;
+      const formBody = document.getElementById('formBody');
+      const toggleBtn = document.getElementById('toggleFormBtn');
+      if (isFormVisible) {
+        formBody.style.display = 'block';
+        toggleBtn.textContent = '▲ フォームをたたむ';
+      } else {
+        formBody.style.display = 'none';
+        toggleBtn.textContent = '▼ フォームを開く';
+      }
+    }
 
     function checkMarketStatus() {
       const now = new Date();
@@ -324,7 +344,7 @@
     }
 
     function saveToLocalStorage() {
-      localStorage.setItem('stockAlerts_v2.7', JSON.stringify(stocks));
+      localStorage.setItem('stockAlerts_v2.8', JSON.stringify(stocks));
     }
 
     function onStockCodeChange() {
@@ -350,7 +370,7 @@
       }
     }
 
-    function saveStock() {
+    function saveNewStock() {
       const code = document.getElementById('stockCodeInput').value.trim();
       const targetPrice = parseFloat(document.getElementById('targetPriceInput').value);
       const dropRate = parseFloat(document.getElementById('dropRateInput').value);
@@ -368,62 +388,57 @@
       let change = stockDictionary[code] ? stockDictionary[code].change : 0;
       let changePct = stockDictionary[code] ? stockDictionary[code].changePct : 0;
 
-      if (editingId) {
-        const index = stocks.findIndex(s => s.id === editingId);
-        if (index !== -1) {
-          stocks[index] = { ...stocks[index], code, name, targetPrice, dropRate, fav, benefit, memo };
-        }
-      } else {
-        const newStock = {
-          id: Date.now().toString(),
-          code, name, targetPrice, dropRate, fav, benefit, memo, price, change, changePct
-        };
-        stocks.unshift(newStock);
-      }
+      const newStock = {
+        id: Date.now().toString(),
+        code, name, targetPrice, dropRate, fav, benefit, memo, price, change, changePct
+      };
+      stocks.unshift(newStock);
 
       saveToLocalStorage();
       renderList();
-      resetForm();
+      resetNewForm();
     }
 
-    function editStock(id) {
-      const item = stocks.find(s => s.id === id);
-      if (!item) return;
-
-      editingId = id;
-      document.getElementById('formTitle').textContent = 'アラートの編集';
-      document.getElementById('stockCodeInput').value = item.code;
-      document.getElementById('targetPriceInput').value = item.targetPrice || '';
-      document.getElementById('dropRateInput').value = item.dropRate || '';
-      document.getElementById('favCheck').checked = item.fav || false;
-      document.getElementById('benefitCheck').checked = item.benefit || false;
-      document.getElementById('memoInput').value = item.memo || '';
-
-      document.getElementById('submitBtn').textContent = '💾 保存';
-      document.getElementById('cancelClearBtn').textContent = '❌ キャンセル';
-
-      onStockCodeChange();
-      scrollToTop();
-    }
-
-    function handleCancelClear() {
-      resetForm();
-    }
-
-    function resetForm() {
-      editingId = null;
-      document.getElementById('formTitle').textContent = '銘柄の登録';
+    function resetNewForm() {
       document.getElementById('stockCodeInput').value = '';
       document.getElementById('targetPriceInput').value = '';
       document.getElementById('dropRateInput').value = '';
       document.getElementById('favCheck').checked = false;
       document.getElementById('benefitCheck').checked = false;
       document.getElementById('memoInput').value = '';
-
-      document.getElementById('submitBtn').textContent = '➕ 追加';
-      document.getElementById('cancelClearBtn').textContent = '🧹 クリア';
-
       onStockCodeChange();
+    }
+
+    // --- その場編集（インライン編集）の制御 ---
+    function startInlineEdit(id) {
+      inlineEditingId = id;
+      renderList();
+    }
+
+    function cancelInlineEdit() {
+      inlineEditingId = null;
+      renderList();
+    }
+
+    function saveInlineEdit(id) {
+      const targetPrice = parseFloat(document.getElementById(`inlineTarget_${id}`).value);
+      const dropRate = parseFloat(document.getElementById(`inlineDrop_${id}`).value);
+      const fav = document.getElementById(`inlineFav_${id}`).checked;
+      const benefit = document.getElementById(`inlineBenefit_${id}`).checked;
+      const memo = document.getElementById(`inlineMemo_${id}`).value.trim();
+
+      const index = stocks.findIndex(s => s.id === id);
+      if (index !== -1) {
+        stocks[index].targetPrice = targetPrice || null;
+        stocks[index].dropRate = dropRate || null;
+        stocks[index].fav = fav;
+        stocks[index].benefit = benefit;
+        stocks[index].memo = memo;
+        saveToLocalStorage();
+      }
+
+      inlineEditingId = null;
+      renderList();
     }
 
     function deleteStock(id) {
@@ -453,10 +468,6 @@
         saveToLocalStorage();
         renderList();
       }
-    }
-
-    function scrollToTop() {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     function refreshPrices() {
@@ -504,67 +515,107 @@
 
       let html = '';
       filtered.forEach(item => {
-        let chanceScore = 50;
-        if (item.targetPrice) {
-          const ratio = (item.targetPrice / item.price);
-          chanceScore = Math.min(99, Math.max(10, Math.round(ratio * 90)));
-        }
+        const isEditing = (inlineEditingId === item.id);
 
-        const isMemoShow = isBulkMemoVisible || !!individualMemoState[item.id];
-
-        let progressPct = 80;
-        if (item.targetPrice) {
-          progressPct = Math.min(100, Math.round((item.targetPrice / item.price) * 100));
-        }
-
-        html += `
-          <div class="stock-item">
-            <div class="stock-top">
-              <div class="stock-title">
-                <span class="star-btn ${item.fav ? 'active' : ''}" onclick="toggleFav('${item.id}')">★</span>
-                ${item.name} <span style="font-size: 0.8rem; color: var(--sub-text);">(${item.code})</span>
-                <span class="score-badge">🔥 ${chanceScore}pt</span>
+        if (isEditing) {
+          // --- その場で編集中のカードUI ---
+          html += `
+            <div class="stock-item editing-mode">
+              <div class="stock-top">
+                <div class="stock-title">✏️ ${item.name} (${item.code}) の編集</div>
               </div>
-              <div>
-                <a href="https://finance.yahoo.co.jp/quote/${item.code}.T" target="_blank" style="text-decoration:none;">
-                  <span style="background: #ff0033; color: white; border-radius: 4px; padding: 2px 5px; font-size: 0.7rem; font-weight: bold;">y!</span>
-                </a>
-              </div>
-            </div>
 
-            <div class="stock-price-row">
-              <div class="current-price ${item.change < 0 ? 'price-down' : 'price-up'}">
-                ${item.change < 0 ? '⬇' : '⬆'} ${item.price.toLocaleString()}円 
-                <span style="font-size: 0.8rem;">${item.change >= 0 ? '+' : ''}${item.change} (${item.changePct}%)</span>
+              <div class="input-row form-group" style="margin-top: 8px;">
+                <div style="flex: 1;">
+                  <label class="form-label">指値 (円以下)</label>
+                  <input type="number" id="inlineTarget_${item.id}" value="${item.targetPrice || ''}" placeholder="例: 1000" inputmode="numeric">
+                </div>
+                <div style="flex: 1;">
+                  <label class="form-label">下落率 (-%以上)</label>
+                  <input type="number" id="inlineDrop_${item.id}" value="${item.dropRate || ''}" placeholder="例: 3" step="0.1" inputmode="decimal">
+                </div>
               </div>
-              ${item.benefit ? `<div style="font-size:0.75rem; color:#d9534f; font-weight:bold;">🎁 優待 (26/09)</div>` : ''}
-            </div>
 
-            <!-- 指値・下落・データバーの1行まとめ -->
-            <div class="target-info-row">
-              <span>指値: ${item.targetPrice ? item.targetPrice.toLocaleString() + '円' : '-'}</span>
-              <span>下落: -${item.dropRate || 3}%</span>
-              <div class="data-bar-container">
-                <div class="data-bar-fill" style="width: ${progressPct}%;"></div>
-                <div class="data-bar-text">${progressPct}%</div>
+              <div class="checkbox-group">
+                <label><input type="checkbox" id="inlineFav_${item.id}" ${item.fav ? 'checked' : ''}> ⭐ お気に入り</label>
+                <label><input type="checkbox" id="inlineBenefit_${item.id}" ${item.benefit ? 'checked' : ''}> 🎁 優待あり</label>
+              </div>
+
+              <div class="form-group">
+                <label class="form-label">メモ</label>
+                <input type="text" id="inlineMemo_${item.id}" value="${item.memo || ''}" placeholder="メモを入力...">
+              </div>
+
+              <div class="btn-action-group" style="margin-top: 10px;">
+                <button class="btn-main" onclick="saveInlineEdit('${item.id}')">💾 保存</button>
+                <button class="btn-secondary" onclick="cancelInlineEdit()">❌ キャンセル</button>
               </div>
             </div>
+          `;
+        } else {
+          // --- 通常表示のカードUI ---
+          let chanceScore = 50;
+          if (item.targetPrice) {
+            const ratio = (item.targetPrice / item.price);
+            chanceScore = Math.min(99, Math.max(10, Math.round(ratio * 90)));
+          }
 
-            ${item.memo ? `
-              <div class="memo-box ${isMemoShow ? '' : 'memo-hidden'}">📝 ${item.memo}</div>
-            ` : ''}
+          const isMemoShow = isBulkMemoVisible || !!individualMemoState[item.id];
 
-            <div class="stock-actions">
+          let progressPct = 80;
+          if (item.targetPrice) {
+            progressPct = Math.min(100, Math.round((item.targetPrice / item.price) * 100));
+          }
+
+          html += `
+            <div class="stock-item">
+              <div class="stock-top">
+                <div class="stock-title">
+                  <span class="star-btn ${item.fav ? 'active' : ''}" onclick="toggleFav('${item.id}')">★</span>
+                  ${item.name} <span style="font-size: 0.8rem; color: var(--sub-text);">(${item.code})</span>
+                  <span class="score-badge">🔥 ${chanceScore}pt</span>
+                </div>
+                <div>
+                  <a href="https://finance.yahoo.co.jp/quote/${item.code}.T" target="_blank" style="text-decoration:none;">
+                    <span style="background: #ff0033; color: white; border-radius: 4px; padding: 2px 5px; font-size: 0.7rem; font-weight: bold;">y!</span>
+                  </a>
+                </div>
+              </div>
+
+              <div class="stock-price-row">
+                <div class="current-price ${item.change < 0 ? 'price-down' : 'price-up'}">
+                  ${item.change < 0 ? '⬇' : '⬆'} ${item.price.toLocaleString()}円 
+                  <span style="font-size: 0.8rem;">${item.change >= 0 ? '+' : ''}${item.change} (${item.changePct}%)</span>
+                </div>
+                ${item.benefit ? `<div style="font-size:0.75rem; color:#d9534f; font-weight:bold;">🎁 優待 (26/09)</div>` : ''}
+              </div>
+
+              <!-- 指値・下落・データバーの1行まとめ -->
+              <div class="target-info-row">
+                <span>指値: ${item.targetPrice ? item.targetPrice.toLocaleString() + '円' : '-'}</span>
+                <span>下落: -${item.dropRate || 3}%</span>
+                <div class="data-bar-container">
+                  <div class="data-bar-fill" style="width: ${progressPct}%;"></div>
+                  <div class="data-bar-text">${progressPct}%</div>
+                </div>
+              </div>
+
               ${item.memo ? `
-                <button class="icon-btn" onclick="toggleSingleMemo('${item.id}')">
-                  ${individualMemoState[item.id] ? '🙈 メモ隠す' : '📝 メモ見る'}
-                </button>
+                <div class="memo-box ${isMemoShow ? '' : 'memo-hidden'}">📝 ${item.memo}</div>
               ` : ''}
-              <button class="icon-btn" onclick="editStock('${item.id}')">✏️ 編集</button>
-              <button class="icon-btn" onclick="deleteStock('${item.id}')">🗑️ 削除</button>
+
+              <div class="stock-actions">
+                ${item.memo ? `
+                  <button class="icon-btn" onclick="toggleSingleMemo('${item.id}')">
+                    ${individualMemoState[item.id] ? '🙈 メモ隠す' : '📝 メモ見る'}
+                  </button>
+                ` : ''}
+                <button class="icon-btn" onclick="startInlineEdit('${item.id}')">✏️ 編集</button>
+                <button class="icon-btn" onclick="deleteStock('${item.id}')">🗑️ 削除</button>
+              </div>
             </div>
-          </div>
-        `;
+          `;
+        }
       });
 
       listContainer.innerHTML = html;
