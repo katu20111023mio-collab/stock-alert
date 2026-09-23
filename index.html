@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>株価アラート ver 4.0.0</title>
+  <title>株価アラート ver 4.1.0</title>
   <!-- 銘柄辞書ファイルの読み込み -->
   <script src="meigara.js"></script>
   <style>
@@ -56,8 +56,10 @@
     .input-row { display: flex; gap: 8px; align-items: center; }
     input[type="text"], input[type="number"], select { width: 100%; padding: 8px 10px; border: 1px solid var(--border-color); border-radius: 6px; background-color: var(--card-bg); color: var(--text-color); font-size: 0.95rem; }
     
-    .preview-box { flex: 1; padding: 8px; background: rgba(0,122,255,0.05); border: 1px solid rgba(0,122,255,0.2); border-radius: 6px; font-size: 0.85rem; min-height: 52px; display: flex; flex-direction: column; justify-content: center; }
+    .preview-box { flex: 1; padding: 8px; background: rgba(0,122,255,0.05); border: 1px solid rgba(0,122,255,0.2); border-radius: 6px; font-size: 0.85rem; min-height: 58px; display: flex; flex-direction: column; justify-content: center; }
     .stock-name-preview { font-weight: bold; color: var(--primary-color); font-size: 0.9rem; }
+    .price-preview-row { display: flex; align-items: center; justify-content: space-between; margin-top: 4px; font-size: 0.8rem; }
+    .btn-copy-price { background: var(--primary-color); color: white; border: none; border-radius: 4px; padding: 2px 6px; font-size: 0.7rem; cursor: pointer; }
 
     .checkbox-group { display: flex; gap: 16px; margin: 10px 0; font-size: 0.85rem; align-items: center; }
     .checkbox-group label { display: flex; align-items: center; gap: 4px; cursor: pointer; }
@@ -114,7 +116,7 @@
 
   <header>
     <div class="app-title">
-      📈 株価アラート <span class="version-tag">ver 4.0.0</span>
+      📈 株価アラート <span class="version-tag">ver 4.1.0</span>
     </div>
     <button class="theme-toggle" id="themeToggleBtn" onclick="toggleDarkMode()">🌙 ダークモード</button>
   </header>
@@ -144,6 +146,11 @@
           <input type="text" id="stockCodeInput" placeholder="2814" maxlength="4" inputmode="numeric" pattern="[0-9]*" style="width: 85px;" oninput="onStockCodeChange()">
           <div class="preview-box">
             <div class="stock-name-preview" id="previewName">銘柄コードを入力してください</div>
+            <div class="price-preview-row" id="pricePreviewRow" style="display: none;">
+              <span id="previewPriceText">現在値: 取得中...</span>
+              <button type="button" class="btn-copy-price" id="copyPriceBtn" onclick="applyPreviewPriceToTarget()" style="display:none;">指値に入力</button>
+              <a id="previewYahooLink" href="#" target="_blank" style="text-decoration:none; font-size:0.75rem; color:#ff0033; font-weight:bold;">[y!で確認]</a>
+            </div>
           </div>
         </div>
       </div>
@@ -211,6 +218,7 @@
 
     let stocks = [];
     let isBulkMemoVisible = false;
+    let currentFetchedPrice = 0;
 
     window.onload = function() {
       const saved = localStorage.getItem('stockAlerts_v4');
@@ -219,19 +227,83 @@
       renderList();
     };
 
-    function onStockCodeChange() {
+    // 株価を外部から堅牢に取得する関数（複数プロキシ対応）
+    async function fetchStockPriceData(code) {
+      const targetUrl = `https://finance.yahoo.co.jp/quote/${code}.T`;
+      const proxies = [
+        `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`,
+        `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`
+      ];
+
+      for (const proxyUrl of proxies) {
+        try {
+          const res = await fetch(proxyUrl);
+          if (!res.ok) continue;
+          let text = '';
+          if (proxyUrl.includes('allorigins')) {
+            const json = await res.json();
+            text = json.contents;
+          } else {
+            text = await res.text();
+          }
+
+          const match = text.match(/<script id="__NEXT_DATA__" type="application\/json">(.*?)<\/script>/s);
+          if (match && match[1]) {
+            const data = JSON.parse(match[1]);
+            const detail = data?.props?.pageProps?.initialState?.stock?.detail;
+            if (detail && detail.price) {
+              return {
+                price: parseFloat(detail.price),
+                change: parseFloat(detail.priceChange || 0),
+                changePct: parseFloat(detail.priceChangePercentage || 0)
+              };
+            }
+          }
+        } catch(e) {
+          console.warn('Proxy fetch failed:', proxyUrl, e);
+        }
+      }
+      return null;
+    }
+
+    async function onStockCodeChange() {
       const code = document.getElementById('stockCodeInput').value.trim();
       const previewName = document.getElementById('previewName');
+      const pricePreviewRow = document.getElementById('pricePreviewRow');
+      const previewPriceText = document.getElementById('previewPriceText');
+      const copyPriceBtn = document.getElementById('copyPriceBtn');
+      const previewYahooLink = document.getElementById('previewYahooLink');
 
       if (code.length === 4) {
         const name = (typeof getStockNameFromDict === 'function') ? getStockNameFromDict(code) : `銘柄 ${code}`;
         previewName.textContent = `${name} (${code})`;
+        
+        pricePreviewRow.style.display = 'flex';
+        previewPriceText.textContent = '現在値: 取得中...';
+        copyPriceBtn.style.display = 'none';
+        previewYahooLink.href = `https://finance.yahoo.co.jp/quote/${code}.T`;
+
+        const data = await fetchStockPriceData(code);
+        if (data) {
+          currentFetchedPrice = data.price;
+          previewPriceText.textContent = `現在値: ${data.price.toLocaleString()}円`;
+          copyPriceBtn.style.display = 'inline-block';
+        } else {
+          previewPriceText.textContent = '現在値: 取得失敗 (y!で確認)';
+        }
       } else {
         previewName.textContent = '銘柄コードを入力してください';
+        pricePreviewRow.style.display = 'none';
       }
     }
 
-    function saveNewStock() {
+    function applyPreviewPriceToTarget() {
+      if (currentFetchedPrice > 0) {
+        document.getElementById('targetPriceInput').value = currentFetchedPrice;
+      }
+    }
+
+    async function saveNewStock() {
       const code = document.getElementById('stockCodeInput').value.trim();
       const targetPrice = parseFloat(document.getElementById('targetPriceInput').value);
       const dropRate = parseFloat(document.getElementById('dropRateInput').value);
@@ -246,6 +318,20 @@
 
       const name = (typeof getStockNameFromDict === 'function') ? getStockNameFromDict(code) : `銘柄 ${code}`;
 
+      let initialPrice = currentFetchedPrice || 0;
+      let initialChange = 0;
+      let initialChangePct = 0;
+
+      // 保存時に最新株価が入っていなければ取得を試みる
+      if (initialPrice === 0) {
+        const fetched = await fetchStockPriceData(code);
+        if (fetched) {
+          initialPrice = fetched.price;
+          initialChange = fetched.change;
+          initialChangePct = fetched.changePct;
+        }
+      }
+
       const newStock = {
         id: Date.now().toString(),
         code,
@@ -255,9 +341,9 @@
         fav,
         benefit,
         memo,
-        price: 0,
-        change: 0,
-        changePct: 0
+        price: initialPrice,
+        change: initialChange,
+        changePct: initialChangePct
       };
 
       stocks.unshift(newStock);
@@ -274,6 +360,8 @@
       document.getElementById('benefitCheck').checked = false;
       document.getElementById('memoInput').value = '';
       document.getElementById('previewName').textContent = '銘柄コードを入力してください';
+      document.getElementById('pricePreviewRow').style.display = 'none';
+      currentFetchedPrice = 0;
     }
 
     function saveToLocalStorage() {
@@ -313,22 +401,12 @@
       btn.disabled = true;
 
       for (let i = 0; i < stocks.length; i++) {
-        try {
-          const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent('https://finance.yahoo.co.jp/quote/' + stocks[i].code + '.T')}`);
-          if (res.ok) {
-            const json = await res.json();
-            const match = json.contents.match(/<script id="__NEXT_DATA__" type="application\/json">(.*?)<\/script>/s);
-            if (match && match[1]) {
-              const data = JSON.parse(match[1]);
-              const detail = data?.props?.pageProps?.initialState?.stock?.detail;
-              if (detail && detail.price) {
-                stocks[i].price = parseFloat(detail.price);
-                stocks[i].change = parseFloat(detail.priceChange || 0);
-                stocks[i].changePct = parseFloat(detail.priceChangePercentage || 0);
-              }
-            }
-          }
-        } catch(e) {}
+        const data = await fetchStockPriceData(stocks[i].code);
+        if (data) {
+          stocks[i].price = data.price;
+          stocks[i].change = data.change;
+          stocks[i].changePct = data.changePct;
+        }
       }
 
       saveToLocalStorage();
