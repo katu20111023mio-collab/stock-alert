@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>株価アラート ver 4.1.0</title>
+  <title>株価アラート ver 4.1.1</title>
   <!-- 銘柄辞書ファイルの読み込み -->
   <script src="meigara.js"></script>
   <style>
@@ -110,7 +110,6 @@
     .header-actions { display: flex; gap: 6px; }
     .btn-header-action { font-size: 0.75rem; padding: 4px 8px; border-radius: 6px; background-color: var(--primary-color); color: white; border: none; cursor: pointer; font-weight: bold; }
 
-    /* 編集フォームのスタイル */
     .edit-form-box { background: rgba(0, 122, 255, 0.05); border: 1px solid var(--primary-color); border-radius: 8px; padding: 10px; margin-top: 8px; }
     .edit-form-row { display: flex; gap: 8px; margin-bottom: 8px; }
   </style>
@@ -119,7 +118,7 @@
 
   <header>
     <div class="app-title">
-      📈 株価アラート <span class="version-tag">ver 4.1.0</span>
+      📈 株価アラート <span class="version-tag">ver 4.1.1</span>
     </div>
     <button class="theme-toggle" id="themeToggleBtn" onclick="toggleDarkMode()">🌙 ダークモード</button>
   </header>
@@ -213,6 +212,9 @@
   </div>
 
   <script>
+    // 自作 Cloudflare Workers の URL
+    const WORKER_URL = 'https://autumn-shape-d4ac.sub-katu20111023mio.workers.dev/';
+
     const initialStocks = [
       { id: '1', code: '2814', name: '佐藤食品工業', targetPrice: 1500, dropRate: 3, fav: false, benefit: false, memo: '', price: 0, change: 0, changePct: 0, showMemo: true },
       { id: '2', code: '4755', name: '楽天グループ', targetPrice: 700, dropRate: 3, fav: true, benefit: true, memo: '優待：モバイル', price: 0, change: 0, changePct: 0, showMemo: true },
@@ -256,41 +258,44 @@
       btn.style.backgroundColor = isNotifyOn ? 'var(--success-color)' : '#8e8e93';
     }
 
-    // 株価取得（バックアッププロキシ付き）
+    // 自作 Cloudflare Worker を通して株価を取得
     async function fetchStockPriceData(code) {
-      const targetUrl = `https://finance.yahoo.co.jp/quote/${code}.T`;
-      const proxies = [
-        `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`,
-        `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`
-      ];
+      try {
+        const url = `${WORKER_URL}?code=${code}`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('Worker response failed');
 
-      for (const proxyUrl of proxies) {
+        const text = await res.text();
+        
+        // 1. Workerが直接JSONオブジェクトを返している場合
         try {
-          const res = await fetch(proxyUrl);
-          if (!res.ok) continue;
-          let text = '';
-          if (proxyUrl.includes('allorigins')) {
-            const json = await res.json();
-            text = json.contents;
-          } else {
-            text = await res.text();
-          }
-
-          const match = text.match(/<script id="__NEXT_DATA__" type="application\/json">(.*?)<\/script>/s);
-          if (match && match[1]) {
-            const data = JSON.parse(match[1]);
-            const detail = data?.props?.pageProps?.initialState?.stock?.detail;
-            if (detail && detail.price) {
-              return {
-                price: parseFloat(detail.price),
-                change: parseFloat(detail.priceChange || 0),
-                changePct: parseFloat(detail.priceChangePercentage || 0)
-              };
-            }
+          const json = JSON.parse(text);
+          if (json && json.price) {
+            return {
+              price: parseFloat(json.price),
+              change: parseFloat(json.change || 0),
+              changePct: parseFloat(json.changePct || 0)
+            };
           }
         } catch(e) {
-          console.warn('Fetch error:', proxyUrl, e);
+          // JSONパース不可の場合はHTMLパースに進行
         }
+
+        // 2. WorkerがYahoo!ファイナンスのHTMLを返している場合
+        const match = text.match(/<script id="__NEXT_DATA__" type="application\/json">(.*?)<\/script>/s);
+        if (match && match[1]) {
+          const data = JSON.parse(match[1]);
+          const detail = data?.props?.pageProps?.initialState?.stock?.detail;
+          if (detail && detail.price) {
+            return {
+              price: parseFloat(detail.price),
+              change: parseFloat(detail.priceChange || 0),
+              changePct: parseFloat(detail.priceChangePercentage || 0)
+            };
+          }
+        }
+      } catch (e) {
+        console.error('Worker Fetch Error:', e);
       }
       return null;
     }
@@ -318,7 +323,7 @@
           previewPriceText.textContent = `現在値: ${data.price.toLocaleString()}円`;
           copyPriceBtn.style.display = 'inline-block';
         } else {
-          previewPriceText.textContent = '現在値: 取得失敗 (y!で確認)';
+          previewPriceText.textContent = '現在値: 取得失敗';
         }
       } else {
         previewName.textContent = '銘柄コードを入力してください';
@@ -530,7 +535,7 @@
       } else if (sortType === 'code') {
         sortedStocks.sort((a, b) => a.code.localeCompare(b.code));
       } else if (sortType === 'priceAsc') {
-        sortedStocks.sort((a, b) => (a.price || 999999) - (b.price || 999999));
+        sortedStocks.sort((a, b) => (a.price || 999999) - (a.price || 999999));
       } else if (sortType === 'priceDesc') {
         sortedStocks.sort((a, b) => (b.price || 0) - (a.price || 0));
       }
