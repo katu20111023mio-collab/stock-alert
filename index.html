@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>株価アラート ver 3.0.0</title>
+  <title>株価アラート ver 3.1.0</title>
   <style>
     :root {
       --bg-color: #f4f6f8;
@@ -98,7 +98,7 @@
     .data-bar-fill { height: 100%; background: linear-gradient(90deg, #007aff, #34c759); transition: width 0.3s ease; border-radius: 8px; }
     .data-bar-text { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: bold; color: #ffffff; text-shadow: 0px 0px 3px rgba(0, 0, 0, 0.8); pointer-events: none; }
 
-    /* メモ領域 (確実に左端寄せ) */
+    /* メモ領域 */
     .memo-box { 
       display: block !important;
       text-align: left !important; 
@@ -128,12 +128,12 @@
   <!-- ヘッダー -->
   <header>
     <div class="app-title">
-      📈 株価アラート <span class="version-tag">ver 3.0.0</span>
+      📈 株価アラート <span class="version-tag">ver 3.1.0</span>
     </div>
     <button class="theme-toggle" id="themeToggleBtn" onclick="toggleDarkMode()">🌙 ダークモード</button>
   </header>
 
-  <!-- ステータスバー（次回オープン予定時刻精密表示） -->
+  <!-- ステータスバー -->
   <div class="status-bar">
     <div id="monitoringStatus">● 監視実行中</div>
     <div id="marketStatus">市場: 判定中...</div>
@@ -157,9 +157,9 @@
     <div class="form-body" id="formBody">
       <!-- 銘柄コード & プレビュー -->
       <div class="form-group">
-        <label class="form-label">銘柄コード（4桁）＆ リアルタイム検索</label>
+        <label class="form-label">銘柄コード（4桁）</label>
         <div class="input-row">
-          <input type="text" id="stockCodeInput" placeholder="9101" maxlength="4" inputmode="numeric" pattern="[0-9]*" style="width: 85px;" oninput="onStockCodeChange()">
+          <input type="text" id="stockCodeInput" placeholder="2811" maxlength="4" inputmode="numeric" pattern="[0-9]*" style="width: 85px;" oninput="onStockCodeChange()">
           <div class="preview-box" id="previewBox">
             <div class="stock-name-preview" id="previewName">銘柄コードを入力してください</div>
             <div class="stock-price-preview" id="previewPrice">- 円</div>
@@ -171,7 +171,7 @@
       <div class="input-row form-group">
         <div style="flex: 1;">
           <label class="form-label">① 指値 (円以下)</label>
-          <input type="number" id="targetPriceInput" placeholder="例: 1000" inputmode="numeric">
+          <input type="number" id="targetPriceInput" placeholder="例: 3000" inputmode="numeric">
         </div>
         <div style="flex: 1;">
           <label class="form-label">② 下落率 (-%以上)</label>
@@ -193,7 +193,7 @@
 
       <!-- ボタン群 -->
       <div class="btn-action-group">
-        <button class="btn-main" onclick="saveNewStock()">➕ 新規追加</button>
+        <button class="btn-main" id="addBtn" onclick="saveNewStock()">➕ 新規追加</button>
         <button class="btn-secondary" onclick="resetNewForm()">🧹 クリア</button>
       </div>
     </div>
@@ -233,23 +233,24 @@
   </div>
 
   <script>
-    // 主要銘柄の内蔵辞書（高速レスポンス用）
+    // 主要・登録銘柄の高速検索用辞書（修正版）
     const stockDictionary = {
-      "9101": { name: "日本郵船", price: 7374, change: 140, changePct: 1.94, benefitPct: "26/09", market: "T" },
-      "5411": { name: "JFEホールディングス", price: 1857, change: 30.5, changePct: 1.67, benefitPct: "26/09", market: "T" },
-      "9432": { name: "日本電信電話 (NTT)", price: 177.1, change: -1.0, changePct: -0.56, benefitPct: "26/09", market: "T" },
-      "4755": { name: "楽天グループ", price: 714.7, change: -18.9, changePct: -2.58, benefitPct: "26/09", defaultMemo: "優待：モバイル", market: "T" },
-      "3382": { name: "セブン＆アイ・ホールディングス", price: 2020, change: -34.5, changePct: -1.68, benefitPct: "", market: "T" },
-      "8267": { name: "イオン", price: 1313.5, change: -34.5, changePct: -2.56, benefitPct: "26/09", market: "T" },
-      "8153": { name: "モスフードサービス", price: 3960, change: -50, changePct: -1.25, benefitPct: "26/09", market: "T" },
-      "2198": { name: "IKKホールディングス", price: 774, change: -5, changePct: -0.64, benefitPct: "26/09", market: "T" },
-      "9166": { name: "GENDA", price: 690, change: -5, changePct: -0.72, benefitPct: "26/09", defaultMemo: "優待：Ban Ban、GIGAなどで使えるポイント", market: "T" },
-      "2792": { name: "ハニーズホールディングス", price: 1445, change: -3, changePct: -0.21, benefitPct: "26/09", market: "T" },
-      "7203": { name: "トヨタ自動車", price: 2650, change: 25, changePct: 0.95, benefitPct: "", market: "T" },
-      "6758": { name: "ソニーグループ", price: 12800, change: -150, changePct: -1.16, benefitPct: "", market: "T" },
-      "8377": { name: "ほくほくフィナンシャルグループ", price: 2150, change: 15, changePct: 0.70, benefitPct: "26/09", market: "T" },
-      "2814": { name: "カゴメ", price: 3120, change: -20, changePct: -0.64, benefitPct: "26/09", market: "T" },
-      "2928": { name: "RIZAPグループ", price: 170, change: 0, changePct: 0.0, benefitPct: "26/09", defaultMemo: "チョコザップ無料等", market: "S" }
+      "9101": { name: "日本郵船", price: 7374, change: 140, changePct: 1.94, market: "T" },
+      "5411": { name: "JFEホールディングス", price: 1857, change: 30.5, changePct: 1.67, market: "T" },
+      "9432": { name: "日本電信電話 (NTT)", price: 177.1, change: -1.0, changePct: -0.56, market: "T" },
+      "4755": { name: "楽天グループ", price: 714.7, change: -18.9, changePct: -2.58, defaultMemo: "優待：モバイル", market: "T" },
+      "3382": { name: "セブン＆アイ・ホールディングス", price: 2020, change: -34.5, changePct: -1.68, market: "T" },
+      "8267": { name: "イオン", price: 1313.5, change: -34.5, changePct: -2.56, market: "T" },
+      "8153": { name: "モスフードサービス", price: 3960, change: -50, changePct: -1.25, market: "T" },
+      "2198": { name: "IKKホールディングス", price: 774, change: -5, changePct: -0.64, market: "T" },
+      "9166": { name: "GENDA", price: 690, change: -5, changePct: -0.72, defaultMemo: "優待：Ban Ban、GIGAなどで使えるポイント", market: "T" },
+      "2792": { name: "ハニーズホールディングス", price: 1445, change: -3, changePct: -0.21, market: "T" },
+      "7203": { name: "トヨタ自動車", price: 2650, change: 25, changePct: 0.95, market: "T" },
+      "6758": { name: "ソニーグループ", price: 12800, change: -150, changePct: -1.16, market: "T" },
+      "8377": { name: "ほくほくフィナンシャルグループ", price: 2150, change: 15, changePct: 0.70, market: "T" },
+      "2811": { name: "カゴメ", price: 3120, change: -20, changePct: -0.64, market: "T" }, // 正しいコードに修正
+      "2814": { name: "佐藤食品工業", price: 1500, change: 0, changePct: 0.0, market: "T" },
+      "2928": { name: "RIZAPグループ", price: 170, change: 0, changePct: 0.0, defaultMemo: "チョコザップ無料等", market: "S" }
     };
 
     const initialStocks = [
@@ -260,7 +261,6 @@
       { id: '5', code: '2928', name: 'RIZAPグループ', targetPrice: 150, dropRate: 3, fav: false, benefit: true, memo: 'チョコザップ無料特典', price: 170, change: 0, changePct: 0.0, market: 'S' }
     ];
 
-    // 祝日（2026年）
     const japaneseHolidays2026 = [
       "2026-01-01", "2026-01-12", "2026-02-11", "2026-02-23", "2026-03-20",
       "2026-04-29", "2026-05-03", "2026-05-04", "2026-05-05", "2026-05-06",
@@ -273,10 +273,9 @@
     let isBulkMemoVisible = false;
     let individualMemoState = {};
     let isFormVisible = true;
-    let searchTimeout = null;
 
     window.onload = function() {
-      const saved = localStorage.getItem('stockAlerts_v3.0');
+      const saved = localStorage.getItem('stockAlerts_v3.1');
       if (saved) {
         try { stocks = JSON.parse(saved); } catch(e) { stocks = initialStocks; }
       } else {
@@ -285,10 +284,9 @@
       }
       renderList();
       updateMarketStatus();
-      setInterval(updateMarketStatus, 30000); // 30秒ごとに時間状態を更新
+      setInterval(updateMarketStatus, 30000);
     };
 
-    // --- 次回オープン日時の精密的計算 ---
     function updateMarketStatus() {
       const now = new Date();
       const currentMins = now.getHours() * 60 + now.getMinutes();
@@ -302,24 +300,20 @@
 
       function isClosedDay(d) {
         const dw = d.getDay();
-        if (dw === 0 || dw === 6) return true; // 土日
+        if (dw === 0 || dw === 6) return true;
         const str = formatDateStr(d);
-        if (japaneseHolidays2026.includes(str)) return true; // 祝日
+        if (japaneseHolidays2026.includes(str)) return true;
         const m = d.getMonth() + 1;
         const date = d.getDate();
-        if ((m === 12 && date === 31) || (m === 1 && date <= 3)) return true; // 年末年始
+        if ((m === 12 && date === 31) || (m === 1 && date <= 3)) return true;
         return false;
       }
 
       const isTodayClosed = isClosedDay(now);
 
       function getNextOpenText() {
-        if (!isTodayClosed && currentMins < 540) {
-          return "本日 09:00〜";
-        }
-        if (!isTodayClosed && currentMins >= 690 && currentMins < 750) {
-          return "本日 12:30〜";
-        }
+        if (!isTodayClosed && currentMins < 540) return "本日 09:00〜";
+        if (!isTodayClosed && currentMins >= 690 && currentMins < 750) return "本日 12:30〜";
 
         let checkDate = new Date(now);
         checkDate.setDate(checkDate.getDate() + 1);
@@ -334,13 +328,9 @@
         const daysArr = ["日", "月", "火", "水", "木", "金", "土"];
         const dayOfWeek = daysArr[checkDate.getDay()];
 
-        if (diffDays <= 1) {
-          return "明日 09:00〜";
-        } else if (checkDate.getDay() === 1 && diffDays <= 3) {
-          return "月曜 09:00〜";
-        } else {
-          return `${checkDate.getMonth() + 1}月${checkDate.getDate()}日(${dayOfWeek}) 09:00〜`;
-        }
+        if (diffDays <= 1) return "明日 09:00〜";
+        if (checkDate.getDay() === 1 && diffDays <= 3) return "月曜 09:00〜";
+        return `${checkDate.getMonth() + 1}月${checkDate.getDate()}日(${dayOfWeek}) 09:00〜`;
       }
 
       const marketStatusEl = document.getElementById('marketStatus');
@@ -362,49 +352,61 @@
       marketStatusEl.textContent = `市場: ${isTodayClosed ? '休場' : '営業時間外'} (次回オープン: ${getNextOpenText()})`;
     }
 
-    // --- インターネット(Yahoo!ファイナンス)からのリアルタイム株価自動取得 ---
+    // --- 超高速な銘柄情報判定 (即時表示) ---
+    function onStockCodeChange() {
+      const code = document.getElementById('stockCodeInput').value.trim();
+      const previewName = document.getElementById('previewName');
+      const previewPrice = document.getElementById('previewPrice');
+
+      if (code.length === 4) {
+        if (stockDictionary[code]) {
+          const item = stockDictionary[code];
+          previewName.textContent = `${item.name} (${code})`;
+          previewPrice.innerHTML = `<span class="price-up">${item.price.toLocaleString()}円 (基準株価)</span>`;
+          if (item.defaultMemo && !document.getElementById('memoInput').value) {
+            document.getElementById('memoInput').value = item.defaultMemo;
+          }
+        } else {
+          previewName.textContent = `銘柄 ${code}`;
+          previewPrice.textContent = `追加時にリアルタイム株価を取得します`;
+        }
+      } else {
+        previewName.textContent = '銘柄コードを入力してください';
+        previewPrice.textContent = '- 円';
+      }
+    }
+
+    // 軽量化したバックグラウンド株価取得
     async function fetchRealtimeStock(code) {
       const market = (code === '2928') ? 'S' : 'T';
       const targetUrl = `https://finance.yahoo.co.jp/quote/${code}.${market}`;
       const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
 
       try {
-        const response = await fetch(proxyUrl);
-        if (!response.ok) throw new Error('通信エラー');
-        const data = await response.json();
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(data.contents, 'text/html');
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000); // 3秒でタイムアウト
 
-        // 銘柄名
-        let name = doc.querySelector('h1')?.innerText?.replace(/【.*?】/g, '').trim();
-        if (!name) {
-          const metaTitle = doc.querySelector('title')?.innerText;
-          if (metaTitle) name = metaTitle.split('【')[0].trim();
-        }
+        const response = await fetch(proxyUrl, { signal: controller.signal });
+        clearTimeout(timeoutId);
 
-        // リアルタイム株価
-        let priceStr = doc.querySelector('span._3rX9s_S7, span._3PSt23K1, span[class*="Price"]')?.innerText;
-        if (!priceStr) {
+        if (response.ok) {
+          const data = await response.json();
           const match = data.contents.match(/class="[^"]*Price[^"]*">([\d,.]+)/i);
-          if (match) priceStr = match[1];
-        }
-
-        if (priceStr) {
-          const price = parseFloat(priceStr.replace(/,/g, ''));
-          return {
-            code,
-            name: name || (stockDictionary[code] ? stockDictionary[code].name : `銘柄 ${code}`),
-            price: price,
-            change: 0,
-            changePct: 0,
-            market: market
-          };
+          if (match) {
+            const price = parseFloat(match[1].replace(/,/g, ''));
+            return {
+              code,
+              name: stockDictionary[code] ? stockDictionary[code].name : `銘柄 ${code}`,
+              price,
+              market
+            };
+          }
         }
       } catch (e) {
-        console.warn('リアルタイム取得失敗、ローカルデータを使用します', e);
+        console.log('タイムアウトまたは取得制限のためローカルデータ使用');
       }
 
-      // 取得失敗時のフォールバック（内蔵辞書または仮データ）
+      // フォールバック
       if (stockDictionary[code]) {
         return { code, ...stockDictionary[code] };
       }
@@ -425,33 +427,7 @@
     }
 
     function saveToLocalStorage() {
-      localStorage.setItem('stockAlerts_v3.0', JSON.stringify(stocks));
-    }
-
-    function onStockCodeChange() {
-      const code = document.getElementById('stockCodeInput').value.trim();
-      const previewName = document.getElementById('previewName');
-      const previewPrice = document.getElementById('previewPrice');
-
-      if (searchTimeout) clearTimeout(searchTimeout);
-
-      if (code.length === 4) {
-        previewName.textContent = '🔍 ネットから最新データ検索中...';
-        previewPrice.textContent = '- 円';
-
-        searchTimeout = setTimeout(async () => {
-          const data = await fetchRealtimeStock(code);
-          previewName.textContent = `${data.name} (${code})`;
-          previewPrice.innerHTML = `<span class="price-up">${data.price.toLocaleString()}円 (リアルタイム取得)</span>`;
-          
-          if (stockDictionary[code] && stockDictionary[code].defaultMemo && !document.getElementById('memoInput').value) {
-            document.getElementById('memoInput').value = stockDictionary[code].defaultMemo;
-          }
-        }, 400);
-      } else {
-        previewName.textContent = '銘柄コードを入力してください';
-        previewPrice.textContent = '- 円';
-      }
+      localStorage.setItem('stockAlerts_v3.1', JSON.stringify(stocks));
     }
 
     async function saveNewStock() {
@@ -467,6 +443,10 @@
         return;
       }
 
+      const addBtn = document.getElementById('addBtn');
+      addBtn.textContent = '⏳ 追加中...';
+      addBtn.disabled = true;
+
       const fetchedData = await fetchRealtimeStock(code);
 
       const newStock = {
@@ -479,8 +459,8 @@
         benefit,
         memo,
         price: fetchedData.price,
-        change: fetchedData.change,
-        changePct: fetchedData.changePct,
+        change: 0,
+        changePct: 0,
         market: fetchedData.market
       };
       stocks.unshift(newStock);
@@ -488,6 +468,9 @@
       saveToLocalStorage();
       renderList();
       resetNewForm();
+
+      addBtn.textContent = '➕ 新規追加';
+      addBtn.disabled = false;
     }
 
     function resetNewForm() {
@@ -560,7 +543,6 @@
       }
     }
 
-    // --- 全銘柄のリアルタイム株価一括更新 ---
     async function refreshPrices() {
       const btn = document.getElementById('refreshBtn');
       btn.textContent = '⏳ 更新中...';
@@ -570,7 +552,6 @@
         const updated = await fetchRealtimeStock(stocks[i].code);
         stocks[i].price = updated.price;
         stocks[i].name = updated.name;
-        stocks[i].market = updated.market;
       }
 
       saveToLocalStorage();
@@ -578,7 +559,7 @@
 
       btn.textContent = '🔄 一括更新';
       btn.disabled = false;
-      alert('最新のリアルタイム株価を一括取得しました！');
+      alert('株価を一括更新しました！');
     }
 
     function toggleDarkMode() {
@@ -691,7 +672,7 @@
               <div class="stock-price-row">
                 <div class="current-price ${item.change < 0 ? 'price-down' : 'price-up'}">
                   ${item.change < 0 ? '⬇' : '⬆'} ${item.price.toLocaleString()}円 
-                  <span style="font-size: 0.8rem;">${item.change >= 0 ? '+' : ''}${item.change} (${item.changePct}%)</span>
+                  <span style="font-size: 0.8rem;">${item.change >= 0 ? '+' : ''}${item.change} (${item.changePct || 0}%)</span>
                 </div>
                 ${item.benefit ? `<div style="font-size:0.75rem; color:#d9534f; font-weight:bold;">🎁 優待 (26/09)</div>` : ''}
               </div>
