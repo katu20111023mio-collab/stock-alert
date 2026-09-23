@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>株価アラート ver 3.4.0</title>
+  <title>株価アラート ver 3.4.1</title>
   <style>
     :root {
       --bg-color: #f4f6f8;
@@ -132,7 +132,7 @@
   <!-- ヘッダー -->
   <header>
     <div class="app-title">
-      📈 株価アラート <span class="version-tag">ver 3.4.0</span>
+      📈 株価アラート <span class="version-tag">ver 3.4.1</span>
     </div>
     <button class="theme-toggle" id="themeToggleBtn" onclick="toggleDarkMode()">🌙 ダークモード</button>
   </header>
@@ -159,7 +159,6 @@
     </div>
 
     <div class="form-body" id="formBody">
-      <!-- 銘柄コード & プレビュー -->
       <div class="form-group">
         <label class="form-label">銘柄コード（4桁）</label>
         <div class="input-row">
@@ -171,7 +170,6 @@
         </div>
       </div>
 
-      <!-- 指値 & 下落率 -->
       <div class="input-row form-group">
         <div style="flex: 1;">
           <label class="form-label">① 指値 (円以下)</label>
@@ -183,19 +181,16 @@
         </div>
       </div>
 
-      <!-- チェックボックス -->
       <div class="checkbox-group">
         <label><input type="checkbox" id="favCheck"> ⭐ お気に入り</label>
         <label><input type="checkbox" id="benefitCheck"> 🎁 優待あり</label>
       </div>
 
-      <!-- メモ欄 -->
       <div class="form-group">
         <label class="form-label">③ メモ（買い増し理由・優待内容など）</label>
         <input type="text" id="memoInput" placeholder="例: 決算発表後に確認">
       </div>
 
-      <!-- ボタン群 -->
       <div class="btn-action-group">
         <button class="btn-main" id="addBtn" onclick="saveNewStock()">➕ 新規追加</button>
         <button class="btn-secondary" onclick="resetNewForm()">🧹 クリア</button>
@@ -213,7 +208,6 @@
       </div>
     </div>
 
-    <!-- ソート・絞り込み -->
     <div class="filter-section">
       <div class="filter-row">
         <span>並び:</span>
@@ -232,7 +226,6 @@
       </div>
     </div>
 
-    <!-- リスト一覧描画領域 -->
     <div id="stockList"></div>
   </div>
 
@@ -256,14 +249,44 @@
     let individualMemoState = {};
     let isFormVisible = true;
 
+    // --- 全自動レスキュー＆読み込み機能 ---
     window.onload = function() {
-      const saved = localStorage.getItem('stockAlerts_v3.4');
-      if (saved) {
-        try { stocks = JSON.parse(saved); } catch(e) { stocks = initialStocks; }
+      const keysToSearch = [
+        'stockAlerts_v3.4',
+        'stockAlerts_v3.3',
+        'stockAlerts_v3.2',
+        'stockAlerts_v3.1',
+        'stockAlerts_v3.0',
+        'stockAlerts_v3',
+        'stockAlerts_v2',
+        'stockAlerts'
+      ];
+
+      let restoredData = null;
+      let foundKey = '';
+
+      for (const key of keysToSearch) {
+        const data = localStorage.getItem(key);
+        if (data) {
+          try {
+            const parsed = JSON.parse(data);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              restoredData = parsed;
+              foundKey = key;
+              break;
+            }
+          } catch(e) {}
+        }
+      }
+
+      if (restoredData) {
+        stocks = restoredData;
+        console.log(`旧保存キー [${foundKey}] から銘柄データを復元しました。`);
       } else {
         stocks = initialStocks;
-        saveToLocalStorage();
       }
+
+      saveToLocalStorage(); // 統合保存
       renderList();
       updateMarketStatus();
       setInterval(updateMarketStatus, 30000);
@@ -358,7 +381,6 @@
       }
     }
 
-    // --- ソース1: Yahoo!ファイナンス取得 ---
     async function fetchFromYahoo(code) {
       const market = (code === '2928') ? 'S' : 'T';
       const targetUrl = `https://finance.yahoo.co.jp/quote/${code}.${market}`;
@@ -375,7 +397,6 @@
           const json = await res.json();
           const html = json.contents || "";
 
-          // JSONパース試行
           const matchScript = html.match(/<script id="__NEXT_DATA__" type="application\/json">(.*?)<\/script>/s);
           if (matchScript && matchScript[1]) {
             const data = JSON.parse(matchScript[1]);
@@ -393,13 +414,10 @@
             }
           }
         }
-      } catch (e) {
-        console.warn("Yahoo!取得スキップ -> バックアップ(株探)へ切り替え");
-      }
+      } catch (e) {}
       return null;
     }
 
-    // --- ソース2: 株探（Kabutan）自動バックアップ取得 ---
     async function fetchFromKabutan(code) {
       const targetUrl = `https://kabutan.jp/stock/?code=${code}`;
       const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
@@ -415,7 +433,6 @@
           const json = await res.json();
           const html = json.contents || "";
 
-          // 株探の株価 extracted HTML regex
           const priceMatch = html.match(/class="kabuka"[^>]*>([\d,.]+)/i) || html.match(/<span class="kabuka">([\d,.]+)/i);
           const nameMatch = html.match(/<h2>([^<]+)\s*\(${code}\)/) || html.match(/<h3>([^<]+)<\/h3>/);
 
@@ -436,13 +453,10 @@
             }
           }
         }
-      } catch (e) {
-        console.warn("株探からの取得失敗");
-      }
+      } catch (e) {}
       return null;
     }
 
-    // --- 統合取得ロジック（Yahoo -> 株探 の順で自動トライ） ---
     async function fetchRealtimeStock(code) {
       let result = await fetchFromYahoo(code);
       if (result && result.price > 0) return result;
@@ -467,7 +481,11 @@
     }
 
     function saveToLocalStorage() {
-      localStorage.setItem('stockAlerts_v3.4', JSON.stringify(stocks));
+      // 過去の互換キーも含めて同期保存
+      const dataStr = JSON.stringify(stocks);
+      localStorage.setItem('stockAlerts_v3.4', dataStr);
+      localStorage.setItem('stockAlerts_v3.3', dataStr);
+      localStorage.setItem('stockAlerts', dataStr);
     }
 
     async function saveNewStock() {
@@ -585,7 +603,6 @@
       }
     }
 
-    // --- 個別銘柄のリアルタイム更新 ---
     async function refreshSinglePrice(id) {
       const index = stocks.findIndex(s => s.id === id);
       if (index === -1) return;
@@ -609,7 +626,6 @@
       renderList();
     }
 
-    // --- 全体一括更新処理 ---
     async function refreshPrices() {
       const btn = document.getElementById('refreshBtn');
       btn.textContent = '⏳ 更新中...';
