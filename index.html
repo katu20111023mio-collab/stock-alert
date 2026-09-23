@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>株価アラート ver 3.5.0</title>
+  <title>株価アラート ver 3.5.2</title>
   <style>
     :root {
       --bg-color: #f4f6f8;
@@ -68,8 +68,8 @@
 
     /* ボタン群 */
     .btn-action-group { display: flex; gap: 8px; margin-top: 10px; }
-    .btn-main { flex: 2; padding: 8px 12px; background-color: var(--primary-color); color: white; border: none; border-radius: 6px; font-weight: bold; font-size: 0.9rem; cursor: pointer; white-space: nowrap; }
-    .btn-secondary { flex: 1; padding: 8px 12px; background-color: #8e8e93; color: white; border: none; border-radius: 6px; font-weight: bold; font-size: 0.85rem; cursor: pointer; white-space: nowrap; }
+    .btn-main { flex: 2; padding: 10px 12px; background-color: var(--primary-color); color: white; border: none; border-radius: 6px; font-weight: bold; font-size: 0.95rem; cursor: pointer; white-space: nowrap; }
+    .btn-secondary { flex: 1; padding: 10px 12px; background-color: #8e8e93; color: white; border: none; border-radius: 6px; font-weight: bold; font-size: 0.85rem; cursor: pointer; white-space: nowrap; }
 
     /* 絞り込み・ソート */
     .filter-section { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; background: rgba(0,0,0,0.02); padding: 8px; border-radius: 8px; }
@@ -127,7 +127,7 @@
   <!-- ヘッダー -->
   <header>
     <div class="app-title">
-      📈 株価アラート <span class="version-tag">ver 3.5.0</span>
+      📈 株価アラート <span class="version-tag">ver 3.5.2</span>
     </div>
     <button class="theme-toggle" id="themeToggleBtn" onclick="toggleDarkMode()">🌙 ダークモード</button>
   </header>
@@ -256,7 +256,6 @@
     let individualMemoState = {};
     let isFormVisible = true;
 
-    // --- バックアップ出力 ---
     function exportBackupData() {
       if (!stocks || stocks.length === 0) {
         alert('バックアップする銘柄データがありません。');
@@ -272,7 +271,6 @@
       downloadAnchor.remove();
     }
 
-    // --- バックアップ復元 ---
     function importBackupData(event) {
       const file = event.target.files[0];
       if (!file) return;
@@ -282,17 +280,17 @@
         try {
           const imported = JSON.parse(e.target.result);
           if (Array.isArray(imported) && imported.length > 0) {
-            if (confirm(`ファイルから ${imported.length} 件の銘柄データを復元しますか？（既存のデータは更新されます）`)) {
+            if (confirm(`ファイルから ${imported.length} 件の銘柄データを復元しますか？`)) {
               stocks = imported;
               saveToLocalStorage();
               renderList();
               alert('データの復元が完了しました！');
             }
           } else {
-            alert('有効な銘柄データが含まれていないファイルです。');
+            alert('有効な銘柄データが含まれていません。');
           }
         } catch(err) {
-          alert('ファイルの読み込みに失敗しました。JSON形式のファイルを選択してください。');
+          alert('ファイルの読み込みに失敗しました。');
         }
       };
       reader.readAsText(file);
@@ -301,19 +299,14 @@
 
     window.onload = function() {
       const keysToSearch = [
+        'stockAlerts_v3.5.2',
+        'stockAlerts_v3.5.1',
         'stockAlerts_v3.5',
         'stockAlerts_v3.4',
-        'stockAlerts_v3.3',
-        'stockAlerts_v3.2',
-        'stockAlerts_v3.1',
-        'stockAlerts_v3.0',
-        'stockAlerts_v3',
-        'stockAlerts_v2',
-        'stockAlerts'
+        'stockAlerts_v3'
       ];
 
       let restoredData = null;
-
       for (const key of keysToSearch) {
         const data = localStorage.getItem(key);
         if (data) {
@@ -387,17 +380,17 @@
       if (!isTodayClosed) {
         if ((currentMins >= 540 && currentMins < 690) || (currentMins >= 750 && currentMins <= 930)) {
           monitoringStatusEl.textContent = '● 監視実行中';
-          marketStatusEl.textContent = '市場: 営業中 (次回更新: 1分以内)';
+          marketStatusEl.textContent = '市場: 営業中';
           return;
         } else if (currentMins >= 690 && currentMins < 750) {
           monitoringStatusEl.textContent = '● 監視一時停止中';
-          marketStatusEl.textContent = `市場: 昼休 (次回オープン: ${getNextOpenText()})`;
+          marketStatusEl.textContent = `市場: 昼休 (${getNextOpenText()})`;
           return;
         }
       }
 
       monitoringStatusEl.textContent = '● 監視停止中';
-      marketStatusEl.textContent = `市場: ${isTodayClosed ? '休場' : '営業時間外'} (次回オープン: ${getNextOpenText()})`;
+      marketStatusEl.textContent = `市場: 休場 (${getNextOpenText()})`;
     }
 
     async function onStockCodeChange() {
@@ -406,16 +399,16 @@
       const previewPrice = document.getElementById('previewPrice');
 
       if (code.length === 4) {
-        previewName.textContent = `取得中... (${code})`;
-        previewPrice.textContent = 'リアルタイム株価を検索中...';
+        previewName.textContent = `検索中... (${code})`;
+        previewPrice.textContent = '株価検索中...';
 
         const fetched = await fetchRealtimeStock(code);
-        if (fetched && !fetched.error) {
+        if (fetched && !fetched.error && fetched.price > 0) {
           previewName.textContent = `${fetched.name} (${code})`;
           previewPrice.innerHTML = `<span class="price-up">${fetched.price.toLocaleString()}円</span> (${fetched.change >= 0 ? '+' : ''}${fetched.change})`;
         } else {
           previewName.textContent = `銘柄 ${code}`;
-          previewPrice.textContent = '⚠️ 株価の自動取得に失敗しました';
+          previewPrice.textContent = '⚠️ 取得不可（そのまま登録可）';
         }
       } else {
         previewName.textContent = '銘柄コードを入力してください';
@@ -423,89 +416,63 @@
       }
     }
 
-    async function fetchFromYahoo(code) {
-      const market = (code === '2928') ? 'S' : 'T';
-      const targetUrl = `https://finance.yahoo.co.jp/quote/${code}.${market}`;
-      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
-
+    // タイムアウト付きフェッチ関数（最大1秒で切る）
+    async function fetchWithTimeout(url, timeoutMs = 1000) {
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), timeoutMs);
       try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3500);
-
-        const res = await fetch(proxyUrl, { signal: controller.signal });
-        clearTimeout(timeoutId);
-
-        if (res.ok) {
-          const json = await res.json();
-          const html = json.contents || "";
-
-          const matchScript = html.match(/<script id="__NEXT_DATA__" type="application\/json">(.*?)<\/script>/s);
-          if (matchScript && matchScript[1]) {
-            const data = JSON.parse(matchScript[1]);
-            const stockDetail = data?.props?.pageProps?.initialState?.stock?.detail;
-            if (stockDetail && stockDetail.price) {
-              return {
-                code,
-                name: stockDetail.name || stockDetail.symbolName,
-                price: parseFloat(stockDetail.price),
-                change: parseFloat(stockDetail.priceChange || 0),
-                changePct: parseFloat(stockDetail.priceChangePercentage || 0),
-                market,
-                source: 'Yahoo'
-              };
-            }
-          }
-        }
-      } catch (e) {}
-      return null;
-    }
-
-    async function fetchFromKabutan(code) {
-      const targetUrl = `https://kabutan.jp/stock/?code=${code}`;
-      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
-
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3500);
-
-        const res = await fetch(proxyUrl, { signal: controller.signal });
-        clearTimeout(timeoutId);
-
-        if (res.ok) {
-          const json = await res.json();
-          const html = json.contents || "";
-
-          const priceMatch = html.match(/class="kabuka"[^>]*>([\d,.]+)/i) || html.match(/<span class="kabuka">([\d,.]+)/i);
-          const nameMatch = html.match(/<h2>([^<]+)\s*\(${code}\)/) || html.match(/<h3>([^<]+)<\/h3>/);
-
-          if (priceMatch) {
-            const price = parseFloat(priceMatch[1].replace(/,/g, ''));
-            const name = nameMatch ? nameMatch[1].trim() : `銘柄 ${code}`;
-
-            if (!isNaN(price) && price > 0) {
-              return {
-                code,
-                name,
-                price,
-                change: 0,
-                changePct: 0,
-                market: 'T',
-                source: '株探'
-              };
-            }
-          }
-        }
-      } catch (e) {}
-      return null;
+        const response = await fetch(url, { signal: controller.signal });
+        clearTimeout(id);
+        return response;
+      } catch (e) {
+        clearTimeout(id);
+        return null;
+      }
     }
 
     async function fetchRealtimeStock(code) {
-      let result = await fetchFromYahoo(code);
-      if (result && result.price > 0) return result;
+      const market = (code === '2928') ? 'S' : 'T';
+      const targetUrl = `https://finance.yahoo.co.jp/quote/${code}.${market}`;
+      
+      // 複数のプロキシサービスを準備（万が一1つが落ちても別を試す）
+      const proxies = [
+        `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`,
+        `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`
+      ];
 
-      result = await fetchFromKabutan(code);
-      if (result && result.price > 0) return result;
+      for (const proxyUrl of proxies) {
+        try {
+          const res = await fetchWithTimeout(proxyUrl, 1200);
+          if (res && res.ok) {
+            let html = "";
+            if (proxyUrl.includes('allorigins')) {
+              const json = await res.json();
+              html = json.contents || "";
+            } else {
+              html = await res.text();
+            }
 
+            const matchScript = html.match(/<script id="__NEXT_DATA__" type="application\/json">(.*?)<\/script>/s);
+            if (matchScript && matchScript[1]) {
+              const data = JSON.parse(matchScript[1]);
+              const stockDetail = data?.props?.pageProps?.initialState?.stock?.detail;
+              if (stockDetail && stockDetail.price) {
+                return {
+                  code,
+                  name: stockDetail.name || stockDetail.symbolName || `銘柄 ${code}`,
+                  price: parseFloat(stockDetail.price),
+                  change: parseFloat(stockDetail.priceChange || 0),
+                  changePct: parseFloat(stockDetail.priceChangePercentage || 0),
+                  market,
+                  source: 'Yahoo'
+                };
+              }
+            }
+          }
+        } catch (e) {}
+      }
+
+      // すべて通信失敗してもエラーを出さず、安全な仮データを即時返却！
       return { code, name: `銘柄 ${code}`, price: 0, change: 0, changePct: 0, market: 'T', error: true };
     }
 
@@ -524,13 +491,13 @@
 
     function saveToLocalStorage() {
       const dataStr = JSON.stringify(stocks);
-      localStorage.setItem('stockAlerts_v3.5', dataStr);
-      localStorage.setItem('stockAlerts_v3.4', dataStr);
+      localStorage.setItem('stockAlerts_v3.5.2', dataStr);
       localStorage.setItem('stockAlerts', dataStr);
     }
 
     async function saveNewStock() {
-      const code = document.getElementById('stockCodeInput').value.trim();
+      const codeInput = document.getElementById('stockCodeInput');
+      const code = codeInput.value.trim();
       const targetPrice = parseFloat(document.getElementById('targetPriceInput').value);
       const dropRate = parseFloat(document.getElementById('dropRateInput').value);
       const fav = document.getElementById('favCheck').checked;
@@ -546,26 +513,33 @@
       addBtn.textContent = '⏳ 追加中...';
       addBtn.disabled = true;
 
-      const fetchedData = await fetchRealtimeStock(code);
+      let fetchedData = null;
+      try {
+        // 最大1.2秒で結果を判定
+        fetchedData = await fetchRealtimeStock(code);
+      } catch(e) {
+        fetchedData = { code, name: `銘柄 ${code}`, price: 0, change: 0, changePct: 0, market: 'T', error: true };
+      }
 
       const newStock = {
         id: Date.now().toString(),
         code,
-        name: fetchedData.error ? `銘柄 ${code}` : fetchedData.name,
-        targetPrice,
-        dropRate,
+        name: (fetchedData && !fetchedData.error && fetchedData.name) ? fetchedData.name : `銘柄 ${code}`,
+        targetPrice: targetPrice || null,
+        dropRate: dropRate || null,
         fav,
         benefit,
         memo,
-        price: fetchedData.price,
-        change: fetchedData.change,
-        changePct: fetchedData.changePct,
-        market: fetchedData.market,
-        source: fetchedData.source || '',
-        error: fetchedData.error
+        price: (fetchedData && fetchedData.price) ? fetchedData.price : 0,
+        change: (fetchedData && fetchedData.change) ? fetchedData.change : 0,
+        changePct: (fetchedData && fetchedData.changePct) ? fetchedData.changePct : 0,
+        market: (fetchedData && fetchedData.market) ? fetchedData.market : 'T',
+        source: (fetchedData && fetchedData.source) ? fetchedData.source : '',
+        error: !fetchedData || fetchedData.error
       };
-      stocks.unshift(newStock);
 
+      // リストの先頭に追加
+      stocks.unshift(newStock);
       saveToLocalStorage();
       renderList();
       resetNewForm();
@@ -581,7 +555,8 @@
       document.getElementById('favCheck').checked = false;
       document.getElementById('benefitCheck').checked = false;
       document.getElementById('memoInput').value = '';
-      onStockCodeChange();
+      document.getElementById('previewName').textContent = '銘柄コードを入力してください';
+      document.getElementById('previewPrice').textContent = '- 円';
     }
 
     function startInlineEdit(id) {
@@ -709,7 +684,10 @@
       const minPrice = parseFloat(document.getElementById('filterMinPrice').value) || 0;
       const maxPrice = parseFloat(document.getElementById('filterMaxPrice').value) || Infinity;
 
-      let filtered = stocks.filter(s => s.price >= minPrice && s.price <= maxPrice);
+      let filtered = stocks.filter(s => {
+        if (s.price === 0) return true;
+        return s.price >= minPrice && s.price <= maxPrice;
+      });
 
       filtered.sort((a, b) => {
         if (sortVal === 'chance') {
@@ -802,7 +780,7 @@
 
               <div class="stock-price-row">
                 ${item.error || item.price === 0 ? `
-                  <div class="price-error">⚠️ 株価取得失敗（🔄ボタンで再取得）</div>
+                  <div class="price-error">⚠️ 株価自動取得保留中（クリックで直接Yahoo表示）</div>
                 ` : `
                   <div class="current-price ${item.change < 0 ? 'price-down' : 'price-up'}">
                     ${item.change < 0 ? '⬇' : '⬆'}${item.price.toLocaleString()}円 
