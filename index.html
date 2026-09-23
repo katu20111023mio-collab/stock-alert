@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>株価アラート ver 3.4.1</title>
+  <title>株価アラート ver 3.5.0</title>
   <style>
     :root {
       --bg-color: #f4f6f8;
@@ -91,18 +91,14 @@
     .price-up { color: var(--success-color); }
     .price-error { color: var(--sub-text); font-size: 0.85rem; }
 
-    /* データソースバッジ */
     .source-badge { font-size: 0.65rem; background: #e9ecef; color: #495057; padding: 1px 4px; border-radius: 3px; margin-left: 4px; }
 
-    /* 指値・下落率・データバーの1行レイアウト */
     .target-info-row { font-size: 0.78rem; color: var(--sub-text); display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
 
-    /* 1行収まり用コンパクトデータバー */
     .data-bar-container { position: relative; flex: 1; max-width: 110px; height: 16px; background-color: var(--border-color); border-radius: 8px; overflow: hidden; margin-left: auto; }
     .data-bar-fill { height: 100%; background: linear-gradient(90deg, #007aff, #34c759); transition: width 0.3s ease; border-radius: 8px; }
     .data-bar-text { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: bold; color: #ffffff; text-shadow: 0px 0px 3px rgba(0, 0, 0, 0.8); pointer-events: none; }
 
-    /* メモ領域 */
     .memo-box { 
       display: block !important;
       text-align: left !important; 
@@ -118,7 +114,6 @@
     body.dark-mode .memo-box { background: rgba(255,255,255,0.05); }
     .memo-hidden { display: none !important; }
 
-    /* カード下部操作ボタン */
     .stock-actions { display: flex; justify-content: flex-end; gap: 6px; margin-top: 6px; border-top: 1px dashed var(--border-color); padding-top: 6px; }
     .icon-btn { background: none; border: 1px solid var(--border-color); border-radius: 4px; padding: 4px 8px; font-size: 0.75rem; cursor: pointer; color: var(--text-color); display: flex; align-items: center; gap: 3px; }
     .icon-btn:hover { background-color: rgba(0,0,0,0.05); }
@@ -132,7 +127,7 @@
   <!-- ヘッダー -->
   <header>
     <div class="app-title">
-      📈 株価アラート <span class="version-tag">ver 3.4.1</span>
+      📈 株価アラート <span class="version-tag">ver 3.5.0</span>
     </div>
     <button class="theme-toggle" id="themeToggleBtn" onclick="toggleDarkMode()">🌙 ダークモード</button>
   </header>
@@ -229,6 +224,18 @@
     <div id="stockList"></div>
   </div>
 
+  <!-- バックアップ・復元カード -->
+  <div class="card">
+    <div class="card-header" style="border-bottom-color: #6c757d;">
+      <div class="card-title">💾 データのバックアップ・復元</div>
+    </div>
+    <div class="form-body" style="display: flex; gap: 8px;">
+      <button class="btn-secondary" style="background-color: #28a745; color: white;" onclick="exportBackupData()">📥 ファイルに保存</button>
+      <button class="btn-secondary" style="background-color: #17a2b8; color: white;" onclick="document.getElementById('importFileInput').click()">📤 ファイルから復元</button>
+      <input type="file" id="importFileInput" accept=".json" style="display:none;" onchange="importBackupData(event)">
+    </div>
+  </div>
+
   <script>
     const initialStocks = [
       { id: '1', code: '2814', name: '佐藤食品工業', targetPrice: 1500, dropRate: 3, fav: false, benefit: false, memo: '', price: 0, change: 0, changePct: 0, market: 'T' },
@@ -249,9 +256,52 @@
     let individualMemoState = {};
     let isFormVisible = true;
 
-    // --- 全自動レスキュー＆読み込み機能 ---
+    // --- バックアップ出力 ---
+    function exportBackupData() {
+      if (!stocks || stocks.length === 0) {
+        alert('バックアップする銘柄データがありません。');
+        return;
+      }
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(stocks, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      const today = new Date().toISOString().slice(0, 10);
+      downloadAnchor.setAttribute("download", `stock_alerts_backup_${today}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+    }
+
+    // --- バックアップ復元 ---
+    function importBackupData(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const imported = JSON.parse(e.target.result);
+          if (Array.isArray(imported) && imported.length > 0) {
+            if (confirm(`ファイルから ${imported.length} 件の銘柄データを復元しますか？（既存のデータは更新されます）`)) {
+              stocks = imported;
+              saveToLocalStorage();
+              renderList();
+              alert('データの復元が完了しました！');
+            }
+          } else {
+            alert('有効な銘柄データが含まれていないファイルです。');
+          }
+        } catch(err) {
+          alert('ファイルの読み込みに失敗しました。JSON形式のファイルを選択してください。');
+        }
+      };
+      reader.readAsText(file);
+      event.target.value = '';
+    }
+
     window.onload = function() {
       const keysToSearch = [
+        'stockAlerts_v3.5',
         'stockAlerts_v3.4',
         'stockAlerts_v3.3',
         'stockAlerts_v3.2',
@@ -263,7 +313,6 @@
       ];
 
       let restoredData = null;
-      let foundKey = '';
 
       for (const key of keysToSearch) {
         const data = localStorage.getItem(key);
@@ -272,21 +321,14 @@
             const parsed = JSON.parse(data);
             if (Array.isArray(parsed) && parsed.length > 0) {
               restoredData = parsed;
-              foundKey = key;
               break;
             }
           } catch(e) {}
         }
       }
 
-      if (restoredData) {
-        stocks = restoredData;
-        console.log(`旧保存キー [${foundKey}] から銘柄データを復元しました。`);
-      } else {
-        stocks = initialStocks;
-      }
-
-      saveToLocalStorage(); // 統合保存
+      stocks = restoredData ? restoredData : initialStocks;
+      saveToLocalStorage();
       renderList();
       updateMarketStatus();
       setInterval(updateMarketStatus, 30000);
@@ -481,10 +523,9 @@
     }
 
     function saveToLocalStorage() {
-      // 過去の互換キーも含めて同期保存
       const dataStr = JSON.stringify(stocks);
+      localStorage.setItem('stockAlerts_v3.5', dataStr);
       localStorage.setItem('stockAlerts_v3.4', dataStr);
-      localStorage.setItem('stockAlerts_v3.3', dataStr);
       localStorage.setItem('stockAlerts', dataStr);
     }
 
