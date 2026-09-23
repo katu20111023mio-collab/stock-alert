@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>株価アラート ver 3.2.0</title>
+  <title>株価アラート ver 3.4.0</title>
   <style>
     :root {
       --bg-color: #f4f6f8;
@@ -89,6 +89,10 @@
     .current-price { font-size: 1.1rem; font-weight: bold; }
     .price-down { color: var(--danger-color); }
     .price-up { color: var(--success-color); }
+    .price-error { color: var(--sub-text); font-size: 0.85rem; }
+
+    /* データソースバッジ */
+    .source-badge { font-size: 0.65rem; background: #e9ecef; color: #495057; padding: 1px 4px; border-radius: 3px; margin-left: 4px; }
 
     /* 指値・下落率・データバーの1行レイアウト */
     .target-info-row { font-size: 0.78rem; color: var(--sub-text); display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
@@ -128,7 +132,7 @@
   <!-- ヘッダー -->
   <header>
     <div class="app-title">
-      📈 株価アラート <span class="version-tag">ver 3.2.0</span>
+      📈 株価アラート <span class="version-tag">ver 3.4.0</span>
     </div>
     <button class="theme-toggle" id="themeToggleBtn" onclick="toggleDarkMode()">🌙 ダークモード</button>
   </header>
@@ -159,7 +163,7 @@
       <div class="form-group">
         <label class="form-label">銘柄コード（4桁）</label>
         <div class="input-row">
-          <input type="text" id="stockCodeInput" placeholder="2811" maxlength="4" inputmode="numeric" pattern="[0-9]*" style="width: 85px;" oninput="onStockCodeChange()">
+          <input type="text" id="stockCodeInput" placeholder="2814" maxlength="4" inputmode="numeric" pattern="[0-9]*" style="width: 85px;" oninput="onStockCodeChange()">
           <div class="preview-box" id="previewBox">
             <div class="stock-name-preview" id="previewName">銘柄コードを入力してください</div>
             <div class="stock-price-preview" id="previewPrice">- 円</div>
@@ -171,7 +175,7 @@
       <div class="input-row form-group">
         <div style="flex: 1;">
           <label class="form-label">① 指値 (円以下)</label>
-          <input type="number" id="targetPriceInput" placeholder="例: 3000" inputmode="numeric">
+          <input type="number" id="targetPriceInput" placeholder="例: 1500" inputmode="numeric">
         </div>
         <div style="flex: 1;">
           <label class="form-label">② 下落率 (-%以上)</label>
@@ -188,7 +192,7 @@
       <!-- メモ欄 -->
       <div class="form-group">
         <label class="form-label">③ メモ（買い増し理由・優待内容など）</label>
-        <input type="text" id="memoInput" placeholder="例: PER10倍以下。決算発表後に確認">
+        <input type="text" id="memoInput" placeholder="例: 決算発表後に確認">
       </div>
 
       <!-- ボタン群 -->
@@ -233,31 +237,10 @@
   </div>
 
   <script>
-    const stockDictionary = {
-      "9101": { name: "日本郵船", price: 7374, change: 140, changePct: 1.94, market: "T" },
-      "5411": { name: "JFEホールディングス", price: 1857, change: 30.5, changePct: 1.67, market: "T" },
-      "9432": { name: "日本電信電話 (NTT)", price: 177.1, change: -1.0, changePct: -0.56, market: "T" },
-      "4755": { name: "楽天グループ", price: 714.7, change: -18.9, changePct: -2.58, defaultMemo: "優待：モバイル", market: "T" },
-      "3382": { name: "セブン＆アイ・ホールディングス", price: 2020, change: -34.5, changePct: -1.68, market: "T" },
-      "8267": { name: "イオン", price: 1313.5, change: -34.5, changePct: -2.56, market: "T" },
-      "8153": { name: "モスフードサービス", price: 3960, change: -50, changePct: -1.25, market: "T" },
-      "2198": { name: "IKKホールディングス", price: 774, change: -5, changePct: -0.64, market: "T" },
-      "9166": { name: "GENDA", price: 690, change: -5, changePct: -0.72, defaultMemo: "優待：Ban Ban、GIGAなどで使えるポイント", market: "T" },
-      "2792": { name: "ハニーズホールディングス", price: 1445, change: -3, changePct: -0.21, market: "T" },
-      "7203": { name: "トヨタ自動車", price: 2650, change: 25, changePct: 0.95, market: "T" },
-      "6758": { name: "ソニーグループ", price: 12800, change: -150, changePct: -1.16, market: "T" },
-      "8377": { name: "ほくほくフィナンシャルグループ", price: 2150, change: 15, changePct: 0.70, market: "T" },
-      "2811": { name: "カゴメ", price: 3120, change: -20, changePct: -0.64, market: "T" },
-      "2814": { name: "佐藤食品工業", price: 1500, change: 0, changePct: 0.0, market: "T" },
-      "2928": { name: "RIZAPグループ", price: 170, change: 0, changePct: 0.0, defaultMemo: "チョコザップ無料等", market: "S" }
-    };
-
     const initialStocks = [
-      { id: '1', code: '4755', name: '楽天グループ', targetPrice: 700, dropRate: 3, fav: true, benefit: true, memo: '優待：モバイル', price: 714.7, change: -18.9, changePct: -2.58, market: 'T' },
-      { id: '2', code: '9432', name: '日本電信電話 (NTT)', targetPrice: 160, dropRate: 3, fav: false, benefit: true, memo: '配当金目的。長期保有', price: 177.1, change: -1.0, changePct: -0.56, market: 'T' },
-      { id: '3', code: '9166', name: 'GENDA', targetPrice: 600, dropRate: 3, fav: false, benefit: true, memo: '優待：Ban Ban、GIGAなどで使えるポイント', price: 690, change: -5.0, changePct: -0.72, market: 'T' },
-      { id: '4', code: '8153', name: 'モスフードサービス', targetPrice: 3000, dropRate: 3, fav: false, benefit: true, memo: '優待券目的。店舗拡大に期待', price: 3960, change: -50.0, changePct: -1.25, market: 'T' },
-      { id: '5', code: '2928', name: 'RIZAPグループ', targetPrice: 150, dropRate: 3, fav: false, benefit: true, memo: 'チョコザップ無料特典', price: 170, change: 0, changePct: 0.0, market: 'S' }
+      { id: '1', code: '2814', name: '佐藤食品工業', targetPrice: 1500, dropRate: 3, fav: false, benefit: false, memo: '', price: 0, change: 0, changePct: 0, market: 'T' },
+      { id: '2', code: '4755', name: '楽天グループ', targetPrice: 700, dropRate: 3, fav: true, benefit: true, memo: '優待：モバイル', price: 0, change: 0, changePct: 0, market: 'T' },
+      { id: '3', code: '9432', name: '日本電信電話 (NTT)', targetPrice: 160, dropRate: 3, fav: false, benefit: true, memo: '配当金目的。長期保有', price: 0, change: 0, changePct: 0, market: 'T' }
     ];
 
     const japaneseHolidays2026 = [
@@ -274,7 +257,7 @@
     let isFormVisible = true;
 
     window.onload = function() {
-      const saved = localStorage.getItem('stockAlerts_v3.2');
+      const saved = localStorage.getItem('stockAlerts_v3.4');
       if (saved) {
         try { stocks = JSON.parse(saved); } catch(e) { stocks = initialStocks; }
       } else {
@@ -284,6 +267,7 @@
       renderList();
       updateMarketStatus();
       setInterval(updateMarketStatus, 30000);
+      refreshPrices();
     };
 
     function updateMarketStatus() {
@@ -351,22 +335,22 @@
       marketStatusEl.textContent = `市場: ${isTodayClosed ? '休場' : '営業時間外'} (次回オープン: ${getNextOpenText()})`;
     }
 
-    function onStockCodeChange() {
+    async function onStockCodeChange() {
       const code = document.getElementById('stockCodeInput').value.trim();
       const previewName = document.getElementById('previewName');
       const previewPrice = document.getElementById('previewPrice');
 
       if (code.length === 4) {
-        if (stockDictionary[code]) {
-          const item = stockDictionary[code];
-          previewName.textContent = `${item.name} (${code})`;
-          previewPrice.innerHTML = `<span class="price-up">${item.price.toLocaleString()}円 (基準株価)</span>`;
-          if (item.defaultMemo && !document.getElementById('memoInput').value) {
-            document.getElementById('memoInput').value = item.defaultMemo;
-          }
+        previewName.textContent = `取得中... (${code})`;
+        previewPrice.textContent = 'リアルタイム株価を検索中...';
+
+        const fetched = await fetchRealtimeStock(code);
+        if (fetched && !fetched.error) {
+          previewName.textContent = `${fetched.name} (${code})`;
+          previewPrice.innerHTML = `<span class="price-up">${fetched.price.toLocaleString()}円</span> (${fetched.change >= 0 ? '+' : ''}${fetched.change})`;
         } else {
           previewName.textContent = `銘柄 ${code}`;
-          previewPrice.textContent = `追加時にリアルタイム株価を取得します`;
+          previewPrice.textContent = '⚠️ 株価の自動取得に失敗しました';
         }
       } else {
         previewName.textContent = '銘柄コードを入力してください';
@@ -374,39 +358,99 @@
       }
     }
 
-    async function fetchRealtimeStock(code) {
+    // --- ソース1: Yahoo!ファイナンス取得 ---
+    async function fetchFromYahoo(code) {
       const market = (code === '2928') ? 'S' : 'T';
       const targetUrl = `https://finance.yahoo.co.jp/quote/${code}.${market}`;
       const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
 
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3000);
+        const timeoutId = setTimeout(() => controller.abort(), 3500);
 
-        const response = await fetch(proxyUrl, { signal: controller.signal });
+        const res = await fetch(proxyUrl, { signal: controller.signal });
         clearTimeout(timeoutId);
 
-        if (response.ok) {
-          const data = await response.json();
-          const match = data.contents.match(/class="[^"]*Price[^"]*">([\d,.]+)/i);
-          if (match) {
-            const price = parseFloat(match[1].replace(/,/g, ''));
-            return {
-              code,
-              name: stockDictionary[code] ? stockDictionary[code].name : `銘柄 ${code}`,
-              price,
-              market
-            };
+        if (res.ok) {
+          const json = await res.json();
+          const html = json.contents || "";
+
+          // JSONパース試行
+          const matchScript = html.match(/<script id="__NEXT_DATA__" type="application\/json">(.*?)<\/script>/s);
+          if (matchScript && matchScript[1]) {
+            const data = JSON.parse(matchScript[1]);
+            const stockDetail = data?.props?.pageProps?.initialState?.stock?.detail;
+            if (stockDetail && stockDetail.price) {
+              return {
+                code,
+                name: stockDetail.name || stockDetail.symbolName,
+                price: parseFloat(stockDetail.price),
+                change: parseFloat(stockDetail.priceChange || 0),
+                changePct: parseFloat(stockDetail.priceChangePercentage || 0),
+                market,
+                source: 'Yahoo'
+              };
+            }
           }
         }
       } catch (e) {
-        console.log('タイムアウトまたは取得制限のためローカルデータ使用');
+        console.warn("Yahoo!取得スキップ -> バックアップ(株探)へ切り替え");
       }
+      return null;
+    }
 
-      if (stockDictionary[code]) {
-        return { code, ...stockDictionary[code] };
+    // --- ソース2: 株探（Kabutan）自動バックアップ取得 ---
+    async function fetchFromKabutan(code) {
+      const targetUrl = `https://kabutan.jp/stock/?code=${code}`;
+      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3500);
+
+        const res = await fetch(proxyUrl, { signal: controller.signal });
+        clearTimeout(timeoutId);
+
+        if (res.ok) {
+          const json = await res.json();
+          const html = json.contents || "";
+
+          // 株探の株価 extracted HTML regex
+          const priceMatch = html.match(/class="kabuka"[^>]*>([\d,.]+)/i) || html.match(/<span class="kabuka">([\d,.]+)/i);
+          const nameMatch = html.match(/<h2>([^<]+)\s*\(${code}\)/) || html.match(/<h3>([^<]+)<\/h3>/);
+
+          if (priceMatch) {
+            const price = parseFloat(priceMatch[1].replace(/,/g, ''));
+            const name = nameMatch ? nameMatch[1].trim() : `銘柄 ${code}`;
+
+            if (!isNaN(price) && price > 0) {
+              return {
+                code,
+                name,
+                price,
+                change: 0,
+                changePct: 0,
+                market: 'T',
+                source: '株探'
+              };
+            }
+          }
+        }
+      } catch (e) {
+        console.warn("株探からの取得失敗");
       }
-      return { code, name: `銘柄 ${code}`, price: 1000, change: 0, changePct: 0, market: 'T' };
+      return null;
+    }
+
+    // --- 統合取得ロジック（Yahoo -> 株探 の順で自動トライ） ---
+    async function fetchRealtimeStock(code) {
+      let result = await fetchFromYahoo(code);
+      if (result && result.price > 0) return result;
+
+      result = await fetchFromKabutan(code);
+      if (result && result.price > 0) return result;
+
+      return { code, name: `銘柄 ${code}`, price: 0, change: 0, changePct: 0, market: 'T', error: true };
     }
 
     function toggleFormCard() {
@@ -423,7 +467,7 @@
     }
 
     function saveToLocalStorage() {
-      localStorage.setItem('stockAlerts_v3.2', JSON.stringify(stocks));
+      localStorage.setItem('stockAlerts_v3.4', JSON.stringify(stocks));
     }
 
     async function saveNewStock() {
@@ -448,16 +492,18 @@
       const newStock = {
         id: Date.now().toString(),
         code,
-        name: fetchedData.name,
+        name: fetchedData.error ? `銘柄 ${code}` : fetchedData.name,
         targetPrice,
         dropRate,
         fav,
         benefit,
         memo,
         price: fetchedData.price,
-        change: 0,
-        changePct: 0,
-        market: fetchedData.market
+        change: fetchedData.change,
+        changePct: fetchedData.changePct,
+        market: fetchedData.market,
+        source: fetchedData.source || '',
+        error: fetchedData.error
       };
       stocks.unshift(newStock);
 
@@ -539,7 +585,7 @@
       }
     }
 
-    // --- 個別銘柄の更新処理 ---
+    // --- 個別銘柄のリアルタイム更新 ---
     async function refreshSinglePrice(id) {
       const index = stocks.findIndex(s => s.id === id);
       if (index === -1) return;
@@ -548,8 +594,16 @@
       if (btn) btn.textContent = '⏳...';
 
       const updated = await fetchRealtimeStock(stocks[index].code);
-      stocks[index].price = updated.price;
-      stocks[index].name = updated.name;
+      if (!updated.error && updated.price > 0) {
+        stocks[index].price = updated.price;
+        stocks[index].name = updated.name;
+        stocks[index].change = updated.change;
+        stocks[index].changePct = updated.changePct;
+        stocks[index].source = updated.source;
+        stocks[index].error = false;
+      } else {
+        stocks[index].error = true;
+      }
 
       saveToLocalStorage();
       renderList();
@@ -563,8 +617,16 @@
 
       for (let i = 0; i < stocks.length; i++) {
         const updated = await fetchRealtimeStock(stocks[i].code);
-        stocks[i].price = updated.price;
-        stocks[i].name = updated.name;
+        if (!updated.error && updated.price > 0) {
+          stocks[i].price = updated.price;
+          stocks[i].name = updated.name;
+          stocks[i].change = updated.change;
+          stocks[i].changePct = updated.changePct;
+          stocks[i].source = updated.source;
+          stocks[i].error = false;
+        } else {
+          stocks[i].error = true;
+        }
       }
 
       saveToLocalStorage();
@@ -572,7 +634,6 @@
 
       btn.textContent = '🔄 一括更新';
       btn.disabled = false;
-      alert('株価を一括更新しました！');
     }
 
     function toggleDarkMode() {
@@ -595,8 +656,8 @@
 
       filtered.sort((a, b) => {
         if (sortVal === 'chance') {
-          const ratioA = a.targetPrice ? (a.price / a.targetPrice) : 999;
-          const ratioB = b.targetPrice ? (b.price / b.targetPrice) : 999;
+          const ratioA = (a.targetPrice && a.price > 0) ? (a.price / a.targetPrice) : 999;
+          const ratioB = (b.targetPrice && b.price > 0) ? (b.price / b.targetPrice) : 999;
           return ratioA - ratioB;
         } else if (sortVal === 'code') {
           return a.code.localeCompare(b.code);
@@ -627,7 +688,7 @@
               <div class="input-row form-group" style="margin-top: 8px;">
                 <div style="flex: 1;">
                   <label class="form-label">指値 (円以下)</label>
-                  <input type="number" id="inlineTarget_${item.id}" value="${item.targetPrice || ''}" placeholder="例: 1000" inputmode="numeric">
+                  <input type="number" id="inlineTarget_${item.id}" value="${item.targetPrice || ''}" placeholder="例: 1500" inputmode="numeric">
                 </div>
                 <div style="flex: 1;">
                   <label class="form-label">下落率 (-%以上)</label>
@@ -653,7 +714,7 @@
           `;
         } else {
           let chanceScore = 50;
-          if (item.targetPrice) {
+          if (item.targetPrice && item.price > 0) {
             const ratio = (item.targetPrice / item.price);
             chanceScore = Math.min(99, Math.max(10, Math.round(ratio * 90)));
           }
@@ -661,7 +722,7 @@
           const isMemoShow = isBulkMemoVisible || !!individualMemoState[item.id];
 
           let progressPct = 80;
-          if (item.targetPrice) {
+          if (item.targetPrice && item.price > 0) {
             progressPct = Math.min(100, Math.round((item.targetPrice / item.price) * 100));
           }
 
@@ -683,10 +744,14 @@
               </div>
 
               <div class="stock-price-row">
-                <div class="current-price ${item.change < 0 ? 'price-down' : 'price-up'}">
-                  ${item.change < 0 ? '⬇' : '⬆'} ${item.price.toLocaleString()}円 
-                  <span style="font-size: 0.8rem;">${item.change >= 0 ? '+' : ''}${item.change} (${item.changePct || 0}%)</span>
-                </div>
+                ${item.error || item.price === 0 ? `
+                  <div class="price-error">⚠️ 株価取得失敗（🔄ボタンで再取得）</div>
+                ` : `
+                  <div class="current-price ${item.change < 0 ? 'price-down' : 'price-up'}">
+                    ${item.change < 0 ? '⬇' : '⬆'}${item.price.toLocaleString()}円 
+                    <span style="font-size: 0.8rem;">${item.change >= 0 ? '+' : ''}${item.change} (${item.changePct \vert{}\vert{} 0}\%)</span>${item.source ? `<span class="source-badge">${item.source}</span>` : ''}
+                  </div>
+                `}
                 ${item.benefit ? `<div style="font-size:0.75rem; color:#d9534f; font-weight:bold;">🎁 優待 (26/09)</div>` : ''}
               </div>
 
