@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>株価アラート ver 3.1.0</title>
+  <title>株価アラート ver 3.2.0</title>
   <style>
     :root {
       --bg-color: #f4f6f8;
@@ -128,7 +128,7 @@
   <!-- ヘッダー -->
   <header>
     <div class="app-title">
-      📈 株価アラート <span class="version-tag">ver 3.1.0</span>
+      📈 株価アラート <span class="version-tag">ver 3.2.0</span>
     </div>
     <button class="theme-toggle" id="themeToggleBtn" onclick="toggleDarkMode()">🌙 ダークモード</button>
   </header>
@@ -233,7 +233,6 @@
   </div>
 
   <script>
-    // 主要・登録銘柄の高速検索用辞書（修正版）
     const stockDictionary = {
       "9101": { name: "日本郵船", price: 7374, change: 140, changePct: 1.94, market: "T" },
       "5411": { name: "JFEホールディングス", price: 1857, change: 30.5, changePct: 1.67, market: "T" },
@@ -248,7 +247,7 @@
       "7203": { name: "トヨタ自動車", price: 2650, change: 25, changePct: 0.95, market: "T" },
       "6758": { name: "ソニーグループ", price: 12800, change: -150, changePct: -1.16, market: "T" },
       "8377": { name: "ほくほくフィナンシャルグループ", price: 2150, change: 15, changePct: 0.70, market: "T" },
-      "2811": { name: "カゴメ", price: 3120, change: -20, changePct: -0.64, market: "T" }, // 正しいコードに修正
+      "2811": { name: "カゴメ", price: 3120, change: -20, changePct: -0.64, market: "T" },
       "2814": { name: "佐藤食品工業", price: 1500, change: 0, changePct: 0.0, market: "T" },
       "2928": { name: "RIZAPグループ", price: 170, change: 0, changePct: 0.0, defaultMemo: "チョコザップ無料等", market: "S" }
     };
@@ -275,7 +274,7 @@
     let isFormVisible = true;
 
     window.onload = function() {
-      const saved = localStorage.getItem('stockAlerts_v3.1');
+      const saved = localStorage.getItem('stockAlerts_v3.2');
       if (saved) {
         try { stocks = JSON.parse(saved); } catch(e) { stocks = initialStocks; }
       } else {
@@ -352,7 +351,6 @@
       marketStatusEl.textContent = `市場: ${isTodayClosed ? '休場' : '営業時間外'} (次回オープン: ${getNextOpenText()})`;
     }
 
-    // --- 超高速な銘柄情報判定 (即時表示) ---
     function onStockCodeChange() {
       const code = document.getElementById('stockCodeInput').value.trim();
       const previewName = document.getElementById('previewName');
@@ -376,7 +374,6 @@
       }
     }
 
-    // 軽量化したバックグラウンド株価取得
     async function fetchRealtimeStock(code) {
       const market = (code === '2928') ? 'S' : 'T';
       const targetUrl = `https://finance.yahoo.co.jp/quote/${code}.${market}`;
@@ -384,7 +381,7 @@
 
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 3000); // 3秒でタイムアウト
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
 
         const response = await fetch(proxyUrl, { signal: controller.signal });
         clearTimeout(timeoutId);
@@ -406,7 +403,6 @@
         console.log('タイムアウトまたは取得制限のためローカルデータ使用');
       }
 
-      // フォールバック
       if (stockDictionary[code]) {
         return { code, ...stockDictionary[code] };
       }
@@ -427,7 +423,7 @@
     }
 
     function saveToLocalStorage() {
-      localStorage.setItem('stockAlerts_v3.1', JSON.stringify(stocks));
+      localStorage.setItem('stockAlerts_v3.2', JSON.stringify(stocks));
     }
 
     async function saveNewStock() {
@@ -543,6 +539,23 @@
       }
     }
 
+    // --- 個別銘柄の更新処理 ---
+    async function refreshSinglePrice(id) {
+      const index = stocks.findIndex(s => s.id === id);
+      if (index === -1) return;
+
+      const btn = document.getElementById(`refreshSingleBtn_${id}`);
+      if (btn) btn.textContent = '⏳...';
+
+      const updated = await fetchRealtimeStock(stocks[index].code);
+      stocks[index].price = updated.price;
+      stocks[index].name = updated.name;
+
+      saveToLocalStorage();
+      renderList();
+    }
+
+    // --- 全体一括更新処理 ---
     async function refreshPrices() {
       const btn = document.getElementById('refreshBtn');
       btn.textContent = '⏳ 更新中...';
@@ -691,6 +704,7 @@
               ` : ''}
 
               <div class="stock-actions">
+                <button class="icon-btn" id="refreshSingleBtn_${item.id}" onclick="refreshSinglePrice('${item.id}')">🔄 更新</button>
                 ${item.memo ? `
                   <button class="icon-btn" onclick="toggleSingleMemo('${item.id}')">
                     ${individualMemoState[item.id] ? '🙈 メモ隠す' : '📝 メモ見る'}
